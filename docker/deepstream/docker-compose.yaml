@@ -1,47 +1,61 @@
-version: "3.7"
+version: '3.9'
+
+x-common: &common
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "3"
+      tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  restart: "unless-stopped"
+  stop_grace_period: 5m
+  stop_signal: SIGINT
+  env_file:
+    - .env
+  environment:
+    - NOTEBOOK_USER:user
+    - NVIDIA_VISIBLE_DEVICES:"all"
+  working_dir: /root/user
+  volumes:
+    - WORKSPACE/user:/root/user
+    - /etc/localtime:/etc/localtime
+  ulimits:
+    memlock: -1
+    stack: 67108864
+  shm_size: "10gb"
+  deploy:
+    restart_policy:
+      condition: on-failure
+      delay: 5s
+      max_attempts: 3
+      window: 120s
+    resources:
+      reservations:
+        devices:
+          - capabilities: [ gpu ]
+            count: all
 
 services:
   deepstream:
-    image: rivia/deepstream:6.0.1-triton
+    <<: *common
+    image: rivia/deepstream:${IMAGE_TAG__DEEPSTREAM:-6.3-triton-multiarch}
     hostname: deepstream
     ports:
       - "0.0.0.0:18554:8554"
       - "0.0.0.0:10089:8888"
       - "0.0.0.0:40004:22"
-    volumes:
-      - "/data/aigroup:/root/aigroup"
-      - "/etc/localtime:/etc/localtime"
-    environment:
-      ROOT_PASS: "123456"
-      NOTEBOOK_PASS: "123456"
-      NOTEBOOK_USER: "aigroup"
-    restart: always
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [ gpu ]
-              count: all
     container_name: deepstream
 
   rtsp-server:
-    image: aler9/rtsp-simple-server:latest
+    <<: *common
+    image: aler9/rtsp-simple-server:${IMAGE_TAG__RTSP:-latest}
     hostname: rtsp-server
     ports:
       - "0.0.0.0:8554:8554"
       - "0.0.0.0:1935:1935"
-    volumes:
-      - "/data/aigroup:/root/aigroup"
-      - "/etc/localtime:/etc/localtime"
-    environment:
-      ROOT_PASS: "123456"
-      NOTEBOOK_PASS: "123456"
-      NOTEBOOK_USER: "aigroup"
-    restart: always
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [ gpu ]
-              count: all
     container_name: rtsp-server
+
+networks:
+  default:
+    name: gpu-deepstream
+    driver: bridge
