@@ -43,7 +43,7 @@ services:
     ports:
       - "0.0.0.0:8888:8888"
       - "0.0.0.0:1234:22"
-    container_name: pytorch
+    container_name: pytorch-user
 
   tensorflow:
     <<: *common
@@ -52,7 +52,7 @@ services:
     ports:
       - "0.0.0.0:18888:8888"
       - "0.0.0.0:11234:22"
-    container_name: tensorflow
+    container_name: tensorflow-user
 
   tensorrt:
     <<: *common
@@ -61,7 +61,7 @@ services:
     ports:
       - "0.0.0.0:10001:22"
       - "0.0.0.0:10088:8888"
-    container_name: tensorrt
+    container_name: tensorrt-user
 
   triton_server:
     <<: *common
@@ -72,7 +72,7 @@ services:
       - "0.0.0.0:8000:8000"
       - "0.0.0.0:8001:8001"
       - "0.0.0.0:8002:8002"
-    container_name: triton_server
+    container_name: triton_server-user
 
   triton_backend:
     <<: *common
@@ -84,7 +84,7 @@ services:
       - "0.0.0.0:18000:8000"
       - "0.0.0.0:18001:8001"
       - "0.0.0.0:18002:8002"
-    container_name: triton_backend
+    container_name: triton_backend-user
 
 networks:
   default:

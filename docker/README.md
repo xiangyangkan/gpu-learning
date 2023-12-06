@@ -15,7 +15,7 @@
 
 ## 构建镜像
 ```bash
-bash build.sh
+sudo proxychains bash build.sh
 ```
 
 > TensorRT的版本要与Triton Server版本保持兼容, 版本对应关系参考[支持矩阵](https://docs.nvidia.com/deeplearning/frameworks/support-matrix/index.html)
@@ -25,12 +25,12 @@ bash build.sh
 1. 自定义`default.env`中的工作目录，用户名，密码；
 2. 更新镜像到最新版:
     ```bash
-    sudo bash general/replace.sh
+    sudo proxychains bash general/replace.sh
     ```
 
 3. 启动服务:
     ```bash
-    cd general && sudo docker compose up -d
+    cd general && sudo proxychains docker compose up -d
     ```
 
 > 包括:

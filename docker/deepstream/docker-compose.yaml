@@ -44,7 +44,7 @@ services:
       - "0.0.0.0:18554:8554"
       - "0.0.0.0:10089:8888"
       - "0.0.0.0:40004:22"
-    container_name: deepstream
+    container_name: deepstream-user
 
   rtsp-server:
     <<: *common
@@ -53,7 +53,7 @@ services:
     ports:
       - "0.0.0.0:8554:8554"
       - "0.0.0.0:1935:1935"
-    container_name: rtsp-server
+    container_name: rtsp-server-user
 
 networks:
   default:
