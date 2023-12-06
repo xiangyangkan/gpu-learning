@@ -88,5 +88,5 @@ services:
 
 networks:
   default:
-    name: gpu-general
+    name: gpu-general-user
     driver: bridge

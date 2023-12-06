@@ -57,5 +57,5 @@ services:
 
 networks:
   default:
-    name: gpu-deepstream
+    name: gpu-deepstream-user
     driver: bridge
