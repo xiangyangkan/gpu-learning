@@ -1,0 +1,15 @@
+sudo   
+vim   
+curl   
+git   
+build-essential   
+dos2unix   
+procps   
+net-tools   
+dnsutils   
+iproute2   
+htop   
+proxychains   
+lrzsz  
+tree  
+

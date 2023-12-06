@@ -1,0 +1,53 @@
+version: "3.7"
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 100m
+    max-file: '3'
+    tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+
+x-gpu-common: &gpu-common
+  ulimits:
+    memlock: -1
+    stack: 67108864
+  shm_size: "10gb"
+  volumes:
+    - "/etc/localtime:/etc/localtime"
+  environment:
+    NVIDIA_VISIBLE_DEVICES: "all"
+  restart: always
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - capabilities: [ gpu ]
+            count: all
+
+services:
+  gpt_academic_with_latex:
+    <<: *gpu-common
+    logging: *logging
+    image: ghcr.io/binary-husky/gpt_academic_with_latex:master  # (Auto Built by Dockerfile: docs/GithubAction+NoLocal+Latex)
+    environment:
+      # 请查阅 `config.py` 以查看所有的配置信息
+      API_KEY:                  'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+      USE_PROXY: False
+      LLM_MODEL: gpt-3.5-turbo-16k
+      AVAIL_LLM_MODELS: "['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4']"
+      LOCAL_MODEL_DEVICE: cuda
+      DEFAULT_WORKER_NUM: 3
+      WEB_PORT: 50923
+
+    # 与宿主的网络融合
+    ports:
+      - "0.0.0.0:50923:50923"
+
+    # 不使用代理网络拉取最新代码
+    command: >
+      bash -c "python3 -u main.py"
+
+networks:
+  default:
+    name: gpt-academic
+    driver: bridge

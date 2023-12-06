@@ -1,0 +1,47 @@
+version: "3.7"
+
+services:
+  deepstream:
+    image: rivia/deepstream:6.0.1-triton
+    hostname: deepstream
+    ports:
+      - "0.0.0.0:18554:8554"
+      - "0.0.0.0:10089:8888"
+      - "0.0.0.0:40004:22"
+    volumes:
+      - "/data/aigroup:/root/aigroup"
+      - "/etc/localtime:/etc/localtime"
+    environment:
+      ROOT_PASS: "123456"
+      NOTEBOOK_PASS: "123456"
+      NOTEBOOK_USER: "aigroup"
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+              count: all
+    container_name: deepstream
+
+  rtsp-server:
+    image: aler9/rtsp-simple-server:latest
+    hostname: rtsp-server
+    ports:
+      - "0.0.0.0:8554:8554"
+      - "0.0.0.0:1935:1935"
+    volumes:
+      - "/data/aigroup:/root/aigroup"
+      - "/etc/localtime:/etc/localtime"
+    environment:
+      ROOT_PASS: "123456"
+      NOTEBOOK_PASS: "123456"
+      NOTEBOOK_USER: "aigroup"
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+              count: all
+    container_name: rtsp-server

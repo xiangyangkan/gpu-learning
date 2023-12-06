@@ -1,0 +1,92 @@
+version: '3.9'
+
+x-common: &common
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "3"
+      tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  restart: "unless-stopped"
+  stop_grace_period: 5m
+  stop_signal: SIGINT
+  env_file:
+    - .env
+  environment:
+    - NOTEBOOK_USER:user
+    - NVIDIA_VISIBLE_DEVICES:"all"
+  working_dir: /root/user
+  volumes:
+    - WORKSPACE/user:/root/user
+    - /etc/localtime:/etc/localtime
+  ulimits:
+    memlock: -1
+    stack: 67108864
+  shm_size: "10gb"
+  deploy:
+    restart_policy:
+      condition: on-failure
+      delay: 5s
+      max_attempts: 3
+      window: 120s
+    resources:
+      reservations:
+        devices:
+          - capabilities: [ gpu ]
+            count: all
+
+services:
+  pytorch:
+    <<: *common
+    image: rivia/pytorch:${IMAGE_TAG__PYTORCH:-23.10}
+    hostname: pytorch
+    ports:
+      - "0.0.0.0:8888:8888"
+      - "0.0.0.0:1234:22"
+    container_name: pytorch
+
+  tensorflow:
+    <<: *common
+    image: rivia/tensorflow:${IMAGE_TAG__TENSORFLOW:-23.10}
+    hostname: tensorflow
+    ports:
+      - "0.0.0.0:18888:8888"
+      - "0.0.0.0:11234:22"
+    container_name: tensorflow
+
+  tensorrt:
+    <<: *common
+    image: rivia/tensorrt:${IMAGE_TAG__TENSORRT:-8.6.1.6-r23.10}
+    hostname: tensorrt
+    ports:
+      - "0.0.0.0:10001:22"
+      - "0.0.0.0:10088:8888"
+    container_name: tensorrt
+
+  triton_server:
+    <<: *common
+    image: rivia/tritonserver:${IMAGE_TAG__TRITONSERVER:-23.10}
+    hostname: triton_server
+    ports:
+      - "0.0.0.0:10022:22"
+      - "0.0.0.0:8000:8000"
+      - "0.0.0.0:8001:8001"
+      - "0.0.0.0:8002:8002"
+    container_name: triton_server
+
+  triton_backend:
+    <<: *common
+    image: rivia/triton_backend:${IMAGE_TAG__TRITON_BACKEND:-23.10}
+    hostname: triton_backend
+    ports:
+      - "0.0.0.0:20022:22"
+      - "0.0.0.0:20088:8888"
+      - "0.0.0.0:18000:8000"
+      - "0.0.0.0:18001:8001"
+      - "0.0.0.0:18002:8002"
+    container_name: triton_backend
+
+networks:
+  default:
+    name: gpu-general
+    driver: bridge
