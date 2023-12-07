@@ -3,11 +3,11 @@ function update_python_version() {
     local python_version="$1"
     declare -a vars
     vars=(
-      "pytorch.Dockerfile"
-      "tensorflow.Dockerfile"
-      "tensorrt.Dockerfile"
-      "triton.Dockerfile"
-      "triton_backend.Dockerfile"
+      "general/pytorch.Dockerfile"
+      "general/tensorflow.Dockerfile"
+      "general/tensorrt.Dockerfile"
+      "general/triton.Dockerfile"
+      "general/triton_backend.Dockerfile"
       # "deepstream/deepstream.Dockerfile" # deepstream doesn't support python 3.10 yet
       # "nemo/nemo.Dockerfile" # nemo doesn't support python 3.10 yet
     )
@@ -20,10 +20,10 @@ function update_ngc_version() {
  local ngc_version="$1"
  declare -a vars
   vars=(
-    "pytorch.Dockerfile"
-    "tensorflow.Dockerfile"
-    "triton.Dockerfile"
-    "triton_backend.Dockerfile"
+    "general/pytorch.Dockerfile"
+    "general/tensorflow.Dockerfile"
+    "general/triton.Dockerfile"
+    "general/triton_backend.Dockerfile"
     # "nemo/nemo.Dockerfile" # nemo doesn't support ngc 23.10 yet
   )
   for var_name in "${vars[@]}"; do
@@ -35,7 +35,7 @@ function update_conda_version() {
     local conda_version="$1"
     declare -a vars
     vars=(
-      "triton_backend.Dockerfile"
+      "general/triton_backend.Dockerfile"
       "deepstream/deepstream.Dockerfile"
     )
     for var_name in "${vars[@]}"; do
@@ -47,8 +47,8 @@ function update_cmake_version() {
     local cmake_version="$1"
     declare -a vars
     vars=(
-      "tensorrt.Dockerfile"
-      "triton_backend.Dockerfile"
+      "general/tensorrt.Dockerfile"
+      "general/triton_backend.Dockerfile"
     )
     for var_name in "${vars[@]}"; do
       sed -i -e "s|^ENV CMAKE_VERSION=.*|ENV CMAKE_VERSION=${cmake_version}|" "$var_name"
@@ -60,7 +60,7 @@ function update_tensorrt_version() {
     local cuda_version="$2"
     declare -a vars
     vars=(
-      "tensorrt.Dockerfile"
+      "general/tensorrt.Dockerfile"
     )
     for var_name in "${vars[@]}"; do
       sed -i -e "s|^ENV TRT_VERSION=.*|ENV TRT_VERSION=${tensorrt_version}|" "$var_name"
