@@ -5,6 +5,7 @@ MAINTAINER Xiangyang Kan <xiangyangkan@outlook.com>
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PYTHON_VERSION=3.8
+ENV DEEPSTREAM_VERSION=6.3-triton-multiarch
 
 # Needed for string substitution
 SHELL ["/bin/bash", "-c"]
@@ -28,6 +29,19 @@ RUN python3 -m pip install --user --upgrade pip && \
 
 
 # install gst-python and pyds
+ARG ARCH=x86_64
+ARG PYDS_MIRROR=https://github.com/NVIDIA-AI-IOT/deepstream_dockers/blob/dev/ds
+RUN set -x && \
+    version="${DEEPSTREAM_VERSION%%-*}" && \
+    echo "version=${version}" && \
+    installer_sh="user_deepstream_python_apps_install.sh" && \
+    wget --quiet "${PYDS_MIRROR}/ds${version}/${ARCH}/${installer_sh}" && \
+    chmod +x ${installer_sh} && \
+    ./${installer_sh} --build-bindings -r master && \
+    rm ${installer_sh}
+
+
+# install ffmpeg
 RUN sed -i "s/deb https\:\/\/developer/# deb https\:\/\/developer/g" /etc/apt/sources.list && \
     apt-get update --fix-missing && apt-get install --no-install-recommends --allow-unauthenticated -y \
       libpython${PYTHON_VERSION}-dev \
@@ -39,15 +53,8 @@ RUN sed -i "s/deb https\:\/\/developer/# deb https\:\/\/developer/g" /etc/apt/so
       ffmpeg  \
       && \
     update-ca-certificates && \
-    cd samples && \
-    git clone https://github.com/NVIDIA-AI-IOT/deepstream_python_apps.git && cd deepstream_python_apps && \
-    git submodule update --init && cd 3rdparty/gst-python && \
-    ./autogen.sh && make && make install && \
-    cd ../../bindings && mkdir build && cd build && \
-    cmake .. -DPYTHON_MAJOR_VERSION=3 -DPYTHON_MINOR_VERSION=8  \
-      -DPIP_PLATFORM=linux_x86_64 -DS_PATH=/opt/nvidia/deepstream/deepstream && \
-    make  && \
-    pip3 install ./pyds-*.whl
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 
 # SSH config

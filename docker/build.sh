@@ -75,7 +75,7 @@ function update_deepstream_version() {
       "deepstream/deepstream.Dockerfile"
     )
     for var_name in "${vars[@]}"; do
-      sed -i -e "s|^ARG DEEPSTREAM_VERSION=.*|ARG DEEPSTREAM_VERSION=${deepstream_version}|" "$var_name"
+      sed -i -e "s|DEEPSTREAM_VERSION=.*|DEEPSTREAM_VERSION=${deepstream_version}|" "$var_name"
     done
 }
 
