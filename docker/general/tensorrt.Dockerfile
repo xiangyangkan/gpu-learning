@@ -166,7 +166,16 @@ COPY supervisord.conf /
 
 COPY proxychains.conf /etc/proxychains.conf
 COPY bashrc /etc/bash.bashrc
-RUN chmod a+rwx /etc/bash.bashrc
-RUN env | egrep -v "^(NVIDIA_BUILD_ID=|LS_COLORS=|SSH_CONNECTION=|USER=|PWD=|HOME=|SSH_CLIENT=|SSH_TTY=|MAIL=|TERM=|SHELL=|SHLVL=|LOGNAME=|PS1=|_=)" > /etc/environment
+COPY configure_repos.sh /configure_repos.sh
+COPY add_host.sh /add_host.sh
+ENV REPO_DOMAIN=http://jfrog.local \
+    REPO_PORT=8082 \
+    REPO_PREFIX=ai
+RUN chmod a+rwx /etc/bash.bashrc && \
+    chmod +x /add_host.sh && \
+    chmod +x /configure_repos.sh && \
+    /configure_repos.sh $REPO_DOMAIN:$REPO_PORT $REPO_PREFIX && \
+    rm /configure_repos.sh
+RUN env | egrep -v "^(LS_COLORS=|SSH_CONNECTION=|USER=|PWD=|HOME=|SSH_CLIENT=|SSH_TTY=|MAIL=|TERM=|SHELL=|SHLVL=|LOGNAME=|PS1=|_=)" > /etc/environment
 
 CMD ["/usr/bin/supervisord", "-c", "/supervisord.conf"]
