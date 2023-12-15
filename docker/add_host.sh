@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# 检测操作系统类型
-OS_TYPE=$(awk -F= '/^ID=/{print $2}' /etc/os-release)
-
 # 定义配置文件路径
 DEBIAN_CONFIG_FILE="/etc/apt/sources.list.d/jfrog.list"
 REDHAT_CONFIG_FILE="/etc/yum.repos.d/jfrog.repo"
@@ -12,50 +9,66 @@ NPM_CONFIG_FILE="$HOME/.npmrc"
 
 # 检查环境变量 REPO_HOST 是否已设置
 if [ -z "$REPO_HOST" ]; then
-    echo "环境变量 REPO_HOST 未设置。"
+    echo -e "environment variable REPO_HOST not set, skipping host configuration."
 
-    # 根据操作系统类型屏蔽本地源配置文件
-    if [[ $OS_TYPE == "ubuntu" || $OS_TYPE == "debian" ]]; then
+    # 屏蔽 APT 或 YUM 配置
+    if [ -f /etc/debian_version ]; then
+        # Debian 或 Ubuntu
         if [ -f "$DEBIAN_CONFIG_FILE" ]; then
-            echo "正在屏蔽 Debian/Ubuntu 源配置文件..."
-            sudo mv "$DEBIAN_CONFIG_FILE" "${DEBIAN_CONFIG_FILE}.disabled"
+            echo -e "Disabling APT source configuration..."
+            mv "$DEBIAN_CONFIG_FILE" "${DEBIAN_CONFIG_FILE}.disabled"
         else
-            echo "未找到 Debian/Ubuntu 源配置文件."
+            echo -e "APT source configuration file not found."
         fi
-    elif [[ $OS_TYPE == "centos" || $OS_TYPE == "rhel" ]]; then
+    elif [ -f /etc/redhat-release ]; then
+        # Red Hat 或 CentOS
         if [ -f "$REDHAT_CONFIG_FILE" ]; then
-            echo "正在屏蔽 Red Hat/CentOS 源配置文件..."
-            sudo mv "$REDHAT_CONFIG_FILE" "${REDHAT_CONFIG_FILE}.disabled"
+            echo -e "Disabling YUM source configuration..."
+            mv "$REDHAT_CONFIG_FILE" "${REDHAT_CONFIG_FILE}.disabled"
         else
-            echo "未找到 Red Hat/CentOS 源配置文件."
+            echo -e "YUM source configuration file not found."
         fi
     else
-        echo "不支持的操作系统类型: $OS_TYPE"
+        echo -e "Unsupported package manager. Neither APT nor YUM."
     fi
 
     # 屏蔽 pip 配置
-    if [ -f "$PIP_CONFIG_FILE" ]; then
-        echo "正在屏蔽 pip 配置文件..."
-        mv "$PIP_CONFIG_FILE" "${PIP_CONFIG_FILE}.disabled"
+    if command -v pip &>/dev/null; then
+        if [ -f "$PIP_CONFIG_FILE" ]; then
+            echo -e "Disabling pip configuration..."
+            mv "$PIP_CONFIG_FILE" "${PIP_CONFIG_FILE}.disabled"
+        else
+            echo -e "pip configuration file not found."
+        fi
     else
-        echo "未找到 pip 配置文件."
+        echo -e "pip not found, skipping pip repository configuration."
     fi
 
-    if [ -f "$CONDA_CONFIG_FILE" ]; then
-        echo "正在屏蔽 conda 配置文件..."
-        mv "$CONDA_CONFIG_FILE" "${CONDA_CONFIG_FILE}.disabled"
+    # 屏蔽 conda 配置
+    if command -v conda &>/dev/null; then
+        if [ -f "$CONDA_CONFIG_FILE" ]; then
+            echo -e "Disabling conda configuration..."
+            mv "$CONDA_CONFIG_FILE" "${CONDA_CONFIG_FILE}.disabled"
+        else
+            echo -e "conda configuration file not found."
+        fi
     else
-        echo "未找到 conda 配置文件."
+        echo -e "conda not found, skipping conda repository configuration."
     fi
 
-    if [ -f "$NPM_CONFIG_FILE" ]; then
-        echo "正在屏蔽 npm 配置文件..."
-        mv "$NPM_CONFIG_FILE" "${NPM_CONFIG_FILE}.disabled"
+    # 屏蔽 npm 配置
+    if command -v npm &>/dev/null; then
+        if [ -f "$NPM_CONFIG_FILE" ]; then
+            echo -e "Disabling npm configuration..."
+            mv "$NPM_CONFIG_FILE" "${NPM_CONFIG_FILE}.disabled"
+        else
+            echo -e "npm configuration file not found."
+        fi
     else
-        echo "未找到 npm 配置文件."
+        echo -e "npm not found, skipping npm repository configuration."
     fi
 
-    exit 1
+    exit 0
 fi
 
 # 准备要添加的 hosts 记录
@@ -63,13 +76,11 @@ HOST_ENTRY="$REPO_HOST jfrog.local"
 
 # 检查记录是否已存在
 if grep -q "jfrog.local" /etc/hosts; then
-    echo "jfrog.local 已存在于 /etc/hosts 中，正在更新记录..."
+    echo -e "update /etc/hosts with $HOST_ENTRY"
     # 使用 sed 命令更新现有记录
     sudo sed -i "/jfrog.local/c\\$HOST_ENTRY" /etc/hosts
 else
-    echo "在 /etc/hosts 中添加新记录：$HOST_ENTRY"
+    echo "add $HOST_ENTRY to /etc/hosts"
     # 将新记录追加到 /etc/hosts
-    echo "$HOST_ENTRY" | sudo tee -a /etc/hosts > /dev/null
+    echo -e "$HOST_ENTRY" | sudo tee -a /etc/hosts > /dev/null
 fi
-
-echo "完成。"
