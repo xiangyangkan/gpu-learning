@@ -22,7 +22,7 @@ configure_package_manager() {
     if [ -f /etc/debian_version ]; then
         # 获取发行版代号，如 'jammy'
         local distro
-        distro=$(lsb_release -cs)
+        distro=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2)
 
         # 配置 APT 源
         cat <<EOF | sudo tee /etc/apt/sources.list.d/jfrog.list
