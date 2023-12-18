@@ -1,25 +1,9 @@
 #!/bin/bash
 
-# 检查参数
-if [ "$#" -ne 2 ]; then
-    echo -e "Usage: $0 <Artifactory-URL> <Repository-Key-Prefix>"
-    exit 1
-fi
-
-# Artifactory 基本 URL
-ARTIFACTORY_URL=$1
-# 提取ARTIFACTORY_URL中的主机名
-ARTIFACTORY_HOST=$(echo -e "$ARTIFACTORY_URL" | awk -F[/:] '{print $4}')
-
-# Repository 前缀
-REPOSITORY_KEY_PREFIX=$2
-
-
 # 检查是否在容器内运行
 in_container() {
     grep -qE '/docker|/kubepods' /proc/1/cgroup
 }
-
 
 # Docker 仓库配置
 configure_docker() {
@@ -108,11 +92,14 @@ configure_huggingface() {
 }
 
 # 执行配置
-# configure_docker
-configure_package_manager
-configure_pip
-configure_conda
-configure_npm
-configure_huggingface
-
-echo -e "All repositories configured successfully."
+if [[ -z "$ARTIFACTORY_URL" && -z "$REPOSITORY_KEY_PREFIX" ]]; then
+    echo -e "environment variables ARTIFACTORY_URL and REPOSITORY_KEY_PREFIX not set, skipping repository configuration."
+else
+    # configure_docker
+    configure_package_manager
+    configure_pip
+    configure_conda
+    configure_npm
+    configure_huggingface
+    echo -e "All repositories configured successfully."
+fi
