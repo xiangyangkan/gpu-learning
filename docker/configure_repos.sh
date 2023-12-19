@@ -75,6 +75,10 @@ timeout = $timeout" > $pip_conf_path
 # conda (Anaconda) 仓库配置
 configure_conda() {
     if command -v conda &>/dev/null; then
+        if [ -f ~/.condarc ]; then
+            echo -e "conda configuration file found, backing up..."
+            mv ~/.condarc ~/.condarc.bak
+        fi
         echo -e "channels:\n  - $ARTIFACTORY_URL/artifactory/api/conda/$REPOSITORY_KEY_PREFIX-conda" >> ~/.condarc
     else
         echo -e "conda not found, skipping conda repository configuration."
@@ -84,6 +88,10 @@ configure_conda() {
 # npm (Node.js) 仓库配置
 configure_npm() {
     if command -v npm &>/dev/null; then
+        if [ -f ~/.npmrc ]; then
+            echo -e "npm configuration file found, backing up..."
+            mv ~/.npmrc ~/.npmrc.bak
+        fi
         echo -e "registry=$ARTIFACTORY_URL/artifactory/api/npm/$REPOSITORY_KEY_PREFIX-npm/" >> ~/.npmrc
     else
         echo -e "npm not found, skipping npm repository configuration."
