@@ -55,14 +55,18 @@ EOF
 configure_pip() {
     if command -v pip &>/dev/null; then
         mkdir -p ~/.pip
-
-        # 设置超时时间，例如30秒
+        local pip_conf_path=~/.pip/pip.conf
         local timeout=300
+
+        if [ -f "$pip_conf_path" ]; then
+            echo -e "pip configuration file found, backing up..."
+            mv "$pip_conf_path" "${pip_conf_path}.bak"
+        fi
 
         echo -e "[global]
 trusted-host = $ARTIFACTORY_HOST
 index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$REPOSITORY_KEY_PREFIX-pypi/simple
-timeout = $timeout" > ~/.pip/pip.conf
+timeout = $timeout" > $pip_conf_path
     else
         echo -e "pip not found, skipping pip repository configuration."
     fi
