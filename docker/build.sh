@@ -170,10 +170,10 @@ TRT_VERSION="8.6.1.6"
 CUDA_VERSION="12.1.1"
 DEEPSTREAM_VERSION="6.3-triton-multiarch"
 update_all "$PYTHON_VERSION" "$NGC_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$TRT_VERSION" "$CUDA_VERSION" "$DEEPSTREAM_VERSION"
-build_pytorch_image "$NGC_VERSION"
-build_tensorflow_image "$NGC_VERSION"
-build_triton_server_image "$NGC_VERSION"
-build_tensorrt_image "$NGC_VERSION" "$TRT_VERSION"
-build_triton_backend_image "$NGC_VERSION"
-build_deepstream_image "$DEEPSTREAM_VERSION"
-build_nemo_image 23.08
+build_pytorch_image "$NGC_VERSION" || exit 1
+build_tensorflow_image "$NGC_VERSION" || exit 1
+build_triton_server_image "$NGC_VERSION" || exit 1
+build_tensorrt_image "$NGC_VERSION" "$TRT_VERSION" || exit 1
+build_triton_backend_image "$NGC_VERSION" || exit 1
+build_deepstream_image "$DEEPSTREAM_VERSION" || exit 1
+build_nemo_image 23.08 || exit 1
