@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ -n "$ARTIFACTORY_URL" ]; then
+    ARTIFACTORY_HOST=$(echo -e "$ARTIFACTORY_URL" | awk -F[/:] '{print $4}')
+fi
+
 # 检查是否在容器内运行
 in_container() {
     grep -qE '/docker|/kubepods' /proc/1/cgroup
