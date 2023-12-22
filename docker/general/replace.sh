@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-COMPOSE_FILE="docker-compose.yaml"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yaml"
 SOURCE_ENV_FILE="$SCRIPT_DIR/default.env"
 TARGET_ENV_FILE="$SCRIPT_DIR/.env"
 source "$SCRIPT_DIR/../utils.sh"
