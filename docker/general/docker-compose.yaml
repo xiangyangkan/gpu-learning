@@ -38,7 +38,7 @@ x-common: &common
 services:
   pytorch:
     <<: *common
-    image: rivia/pytorch:${IMAGE_TAG__PYTORCH:-23.10}
+    image: ${DOCKER_DOMAIN}rivia/pytorch:${IMAGE_TAG__PYTORCH:-23.10}
     hostname: pytorch
     ports:
       - "0.0.0.0:8888:8888"
@@ -47,7 +47,7 @@ services:
 
   tensorflow:
     <<: *common
-    image: rivia/tensorflow:${IMAGE_TAG__TENSORFLOW:-23.10}
+    image: ${DOCKER_DOMAIN}rivia/tensorflow:${IMAGE_TAG__TENSORFLOW:-23.10}
     hostname: tensorflow
     ports:
       - "0.0.0.0:18888:8888"
@@ -56,7 +56,7 @@ services:
 
   tensorrt:
     <<: *common
-    image: rivia/tensorrt:${IMAGE_TAG__TENSORRT:-8.6.1.6-r23.10}
+    image: ${DOCKER_DOMAIN}rivia/tensorrt:${IMAGE_TAG__TENSORRT:-8.6.1.6-r23.10}
     hostname: tensorrt
     ports:
       - "0.0.0.0:10001:22"
@@ -65,7 +65,7 @@ services:
 
   triton_server:
     <<: *common
-    image: rivia/tritonserver:${IMAGE_TAG__TRITONSERVER:-23.10}
+    image: ${DOCKER_DOMAIN}rivia/tritonserver:${IMAGE_TAG__TRITONSERVER:-23.10}
     hostname: triton_server
     ports:
       - "0.0.0.0:10022:22"
@@ -76,7 +76,7 @@ services:
 
   triton_backend:
     <<: *common
-    image: rivia/triton_backend:${IMAGE_TAG__TRITON_BACKEND:-23.10}
+    image: ${DOCKER_DOMAIN}rivia/triton_backend:${IMAGE_TAG__TRITON_BACKEND:-23.10}
     hostname: triton_backend
     ports:
       - "0.0.0.0:20022:22"

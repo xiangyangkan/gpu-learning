@@ -22,7 +22,7 @@ sudo proxychains bash build.sh
 
 ## 启动服务
 
-1. 自定义`default.env`中的工作目录，用户名，密码；
+1. 自定义`default.env`中的工作目录，用户名，密码，本地源配置；
 2. 更新镜像到最新版:
     ```bash
     sudo proxychains bash general/replace.sh
