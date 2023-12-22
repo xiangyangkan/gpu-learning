@@ -37,7 +37,7 @@ RUN set -x && \
     installer_sh="user_deepstream_python_apps_install.sh" && \
     wget --quiet "${PYDS_MIRROR}/ds${version}/${ARCH}/${installer_sh}" && \
     chmod +x ${installer_sh} && \
-    ./${installer_sh} --build-bindings -r master && \
+    ./${installer_sh} --build-bindings -r "dev/ds/ds${version}" && \
     rm ${installer_sh}
 
 

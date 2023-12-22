@@ -4,23 +4,6 @@ if [ -n "$ARTIFACTORY_URL" ]; then
     ARTIFACTORY_HOST=$(echo -e "$ARTIFACTORY_URL" | awk -F[/:] '{print $4}')
 fi
 
-# 检查是否在容器内运行
-in_container() {
-    grep -qE '/docker|/kubepods' /proc/1/cgroup
-}
-
-# Docker 仓库配置
-configure_docker() {
-    if ! in_container; then
-        # daemon.json中registry-mirrors不能添加路径，否则会报错
-        # echo -e '{"registry-mirrors": ["'"$ARTIFACTORY_URL"'/artifactory/'"$REPOSITORY_KEY_PREFIX'"-docker/"]}' | sudo tee /etc/docker/daemon.json
-        echo -e '{"insecure-registries": ["'"$ARTIFACTORY_HOST"'"]}' | sudo tee /etc/docker/daemon.json
-        # sudo systemctl restart docker
-    else
-        echo -e "Running inside a container, skipping Docker repository configuration."
-    fi
-}
-
 # APT (Debian/Ubuntu) 或 RPM (Red Hat/CentOS) 仓库配置
 configure_package_manager() {
     if [ -f /etc/debian_version ]; then
@@ -28,25 +11,41 @@ configure_package_manager() {
         local distro
         distro=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2)
 
+        # 获取仓库 key
+        local repo_key
+        if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
+            repo_key="$REPOSITORY_KEY_PREFIX-debian"
+        else
+            repo_key="debian"
+        fi
+
         # 配置 APT 源
         cat <<EOF | sudo tee /etc/apt/sources.list.d/jfrog.list
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro main restricted
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro-updates main restricted
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro universe
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro-updates universe
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro multiverse
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro-updates multiverse
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro-backports main restricted universe multiverse
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro-security main restricted
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro-security universe
-deb $ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-debian/ $distro-security multiverse
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro main restricted
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-updates main restricted
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro universe
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-updates universe
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro multiverse
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-updates multiverse
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-backports main restricted universe multiverse
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security main restricted
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security universe
+deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security multiverse
 EOF
     elif [ -f /etc/redhat-release ]; then
+        # 获取仓库 key
+        local repo_key
+        if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
+            repo_key="$REPOSITORY_KEY_PREFIX-rpm"
+        else
+            repo_key="rpm"
+        fi
+
         # Red Hat 或 CentOS
         cat <<EOF | sudo tee /etc/yum.repos.d/jfrog.repo
 [jfrog]
 name=JFrog Artifactory
-baseurl=$ARTIFACTORY_URL/artifactory/$REPOSITORY_KEY_PREFIX-rpm/
+baseurl=$ARTIFACTORY_URL/artifactory/$repo_key/
 enabled=1
 gpgcheck=0
 EOF
@@ -61,6 +60,12 @@ configure_pip() {
         mkdir -p ~/.pip
         local pip_conf_path=~/.pip/pip.conf
         local timeout=300
+        local repo_key
+        if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
+            repo_key="$REPOSITORY_KEY_PREFIX-pypi"
+        else
+            repo_key="pypi"
+        fi
 
         if [ -f "$pip_conf_path" ]; then
             echo -e "pip configuration file found, backing up..."
@@ -69,7 +74,7 @@ configure_pip() {
 
         echo -e "[global]
 trusted-host = $ARTIFACTORY_HOST
-index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$REPOSITORY_KEY_PREFIX-pypi/simple
+index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$repo_key/simple
 timeout = $timeout" > $pip_conf_path
     else
         echo -e "pip not found, skipping pip repository configuration."
@@ -79,11 +84,17 @@ timeout = $timeout" > $pip_conf_path
 # conda (Anaconda) 仓库配置
 configure_conda() {
     if command -v conda &>/dev/null; then
+        local repo_key
+        if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
+            repo_key="$REPOSITORY_KEY_PREFIX-conda"
+        else
+            repo_key="conda"
+        fi
         if [ -f ~/.condarc ]; then
             echo -e "conda configuration file found, backing up..."
             mv ~/.condarc ~/.condarc.bak
         fi
-        echo -e "channels:\n  - $ARTIFACTORY_URL/artifactory/api/conda/$REPOSITORY_KEY_PREFIX-conda" >> ~/.condarc
+        echo -e "channels:\n  - $ARTIFACTORY_URL/artifactory/api/conda/$repo_key" >> ~/.condarc
     else
         echo -e "conda not found, skipping conda repository configuration."
     fi
@@ -92,11 +103,17 @@ configure_conda() {
 # npm (Node.js) 仓库配置
 configure_npm() {
     if command -v npm &>/dev/null; then
+        local repo_key
+        if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
+            repo_key="$REPOSITORY_KEY_PREFIX-npm"
+        else
+            repo_key="npm"
+        fi
         if [ -f ~/.npmrc ]; then
             echo -e "npm configuration file found, backing up..."
             mv ~/.npmrc ~/.npmrc.bak
         fi
-        echo -e "registry=$ARTIFACTORY_URL/artifactory/api/npm/$REPOSITORY_KEY_PREFIX-npm/" >> ~/.npmrc
+        echo -e "registry=$ARTIFACTORY_URL/artifactory/api/npm/$repo_key/" >> ~/.npmrc
     else
         echo -e "npm not found, skipping npm repository configuration."
     fi
@@ -108,10 +125,9 @@ configure_huggingface() {
 }
 
 # 执行配置
-if [[ -z "$ARTIFACTORY_URL" && -z "$REPOSITORY_KEY_PREFIX" ]]; then
-    echo -e "environment variables ARTIFACTORY_URL and REPOSITORY_KEY_PREFIX not set, skipping repository configuration."
+if [[ -z "$ARTIFACTORY_URL" ]]; then
+    echo -e "environment variables ARTIFACTORY_URL not set, skipping repository configuration."
 else
-    # configure_docker
     configure_package_manager
     configure_pip
     configure_conda
