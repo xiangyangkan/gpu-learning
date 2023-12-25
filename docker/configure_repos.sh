@@ -32,6 +32,8 @@ deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security main 
 deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security universe
 deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security multiverse
 EOF
+        # 备份原有源
+        mv /etc/apt/sources.list /etc/apt/sources.list.bak
     elif [ -f /etc/redhat-release ]; then
         # 获取仓库 key
         local repo_key
@@ -49,6 +51,8 @@ baseurl=$ARTIFACTORY_URL/artifactory/$repo_key/
 enabled=1
 gpgcheck=0
 EOF
+        # 备份原有源
+        mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
     else
         echo -e "Unsupported package manager. Neither APT nor RPM."
     fi
@@ -58,7 +62,6 @@ EOF
 configure_pip() {
     if command -v pip &>/dev/null; then
         mkdir -p ~/.pip
-        local pip_conf_path=~/.pip/pip.conf
         local timeout=300
         local repo_key
         if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
@@ -67,15 +70,24 @@ configure_pip() {
             repo_key="pypi"
         fi
 
-        if [ -f "$pip_conf_path" ]; then
-            echo -e "pip configuration file found, backing up..."
-            mv "$pip_conf_path" "${pip_conf_path}.bak"
-        fi
+        pip_conf_list=(
+          "$HOME/.pip/pip.conf"
+          "$HOME/.config/pip/pip.conf"
+          "/etc/pip.conf"
+          "/etc/xdg/pip/pip.conf"
+          "/usr/pip.conf"
+        )
 
-        echo -e "[global]
+        for pip_conf_path in "${pip_conf_list[@]}"; do
+            if [ -f "$pip_conf_path" ]; then
+                echo -e "pip configuration file found, backing up..."
+                mv "$pip_conf_path" "${pip_conf_path}.bak"
+            fi
+                echo -e "[global]
 trusted-host = $ARTIFACTORY_HOST
 index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$repo_key/simple
-timeout = $timeout" > $pip_conf_path
+timeout = $timeout" > "$pip_conf_path"
+        done
     else
         echo -e "pip not found, skipping pip repository configuration."
     fi
@@ -94,7 +106,18 @@ configure_conda() {
             echo -e "conda configuration file found, backing up..."
             mv ~/.condarc ~/.condarc.bak
         fi
-        echo -e "channels:\n  - $ARTIFACTORY_URL/artifactory/api/conda/$repo_key" >> ~/.condarc
+        local repo_url="$ARTIFACTORY_URL/artifactory/$repo_key"
+        echo -e "channels:
+  - defaults
+show_channel_urls: true
+default_channels:
+  - $repo_url
+custom_channels:
+  conda-forge: $repo_url
+  nvidia: $repo_url
+  pytorch: $repo_url
+channel_alias: $repo_url
+ssl_verify: false " >> ~/.condarc
     else
         echo -e "conda not found, skipping conda repository configuration."
     fi
