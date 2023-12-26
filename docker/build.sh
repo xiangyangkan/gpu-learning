@@ -8,7 +8,7 @@ function update_python_version() {
       "general/tensorrt.Dockerfile"
       "general/triton.Dockerfile"
       "general/triton_backend.Dockerfile"
-      # "deepstream/deepstream.Dockerfile" # deepstream doesn't support python 3.10 yet
+      "deepstream/deepstream.Dockerfile" # deepstream doesn't support python 3.10 yet
       # "nemo/nemo.Dockerfile" # nemo doesn't support python 3.10 yet
     )
     for var_name in "${vars[@]}"; do
