@@ -70,12 +70,14 @@ function update_tensorrt_version() {
 
 function update_deepstream_version() {
     local deepstream_version="$1"
+    local pyds_version="$2"
     declare -a vars
     vars=(
       "deepstream/deepstream.Dockerfile"
     )
     for var_name in "${vars[@]}"; do
       sed -i -e "s|DEEPSTREAM_VERSION=.*|DEEPSTREAM_VERSION=${deepstream_version}|" "$var_name"
+      sed -i -e "s|PYDS_VERSION=.*|PYDS_VERSION=${pyds_version}|" "$var_name"
     done
 }
 
@@ -87,12 +89,13 @@ function update_all() {
     local tensorrt_version="$5"
     local cuda_version="$6"
     local deepstream_version="$7"
+    local pyds_version="$8"
     update_python_version "$python_version"
     update_ngc_version "$ngc_version"
     update_conda_version "$conda_version"
     update_cmake_version "$cmake_version"
     update_tensorrt_version "$tensorrt_version" "$cuda_version"
-    update_deepstream_version "$deepstream_version"
+    update_deepstream_version "$deepstream_version" "$pyds_version"
 }
 
 function build_images() {
@@ -169,7 +172,8 @@ CMAKE_VERSION="3.26.5"
 TRT_VERSION="8.6.1.6"
 CUDA_VERSION="12.1.1"
 DEEPSTREAM_VERSION="6.3-triton-multiarch"
-update_all "$PYTHON_VERSION" "$NGC_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$TRT_VERSION" "$CUDA_VERSION" "$DEEPSTREAM_VERSION"
+PYDS_VERSION="v1.1.8"
+update_all "$PYTHON_VERSION" "$NGC_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$TRT_VERSION" "$CUDA_VERSION" "$DEEPSTREAM_VERSION" "$PYDS_VERSION" || exit 1
 build_pytorch_image "$NGC_VERSION" || exit 1
 build_tensorflow_image "$NGC_VERSION" || exit 1
 build_triton_server_image "$NGC_VERSION" || exit 1

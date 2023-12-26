@@ -31,13 +31,14 @@ RUN python3 -m pip install --user --upgrade pip && \
 # install gst-python and pyds
 ARG ARCH=x86_64
 ARG PYDS_MIRROR=https://github.com/NVIDIA-AI-IOT/deepstream_dockers/blob/dev/ds
+ARG PyDS_VERSION=1.1.8
 RUN set -x && \
     version="${DEEPSTREAM_VERSION%%-*}" && \
     echo "version=${version}" && \
     installer_sh="user_deepstream_python_apps_install.sh" && \
     wget --quiet "${PYDS_MIRROR}/ds${version}/${ARCH}/${installer_sh}" && \
     chmod +x ${installer_sh} && \
-    ./${installer_sh} --build-bindings -r "dev/ds/ds${version}" && \
+    ./${installer_sh} --version "${PyDS_VERSION}" && \
     rm ${installer_sh}
 
 
