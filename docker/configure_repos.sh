@@ -5,6 +5,7 @@ if [ -n "$ARTIFACTORY_URL" ]; then
 fi
 
 # APT (Debian/Ubuntu) 或 RPM (Red Hat/CentOS) 仓库配置
+# 需要在/usr/local/share/ca-certificates/目录下放置证书文件
 configure_package_manager() {
     if [ -f /etc/debian_version ]; then
         # 获取发行版代号，如 'jammy'
@@ -32,8 +33,15 @@ deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security main 
 deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security universe
 deb [trusted=yes] $ARTIFACTORY_URL/artifactory/$repo_key/ $distro-security multiverse
 EOF
+        echo -e "apt configuration file written to /etc/apt/sources.list.d/jfrog.list"
         # 备份原有源
-        mv /etc/apt/sources.list /etc/apt/sources.list.bak
+        local config_file="/etc/apt/sources.list"
+        local backup_file="/etc/apt/sources.list.bak"
+        if [ -f "$backup_file" ]; then
+            echo -e "backup file $backup_file found, skipping backup..."
+        else
+            mv "$config_file" "$backup_file"
+        fi
     elif [ -f /etc/redhat-release ]; then
         # 获取仓库 key
         local repo_key
@@ -51,26 +59,36 @@ baseurl=$ARTIFACTORY_URL/artifactory/$repo_key/
 enabled=1
 gpgcheck=0
 EOF
+        echo -e "yum configuration file written to /etc/yum.repos.d/jfrog.repo"
         # 备份原有源
-        mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+        local config_file="/etc/yum.repos.d/CentOS-Base.repo"
+        local backup_file="/etc/yum.repos.d/CentOS-Base.repo.bak"
+        if [ -f "$backup_file" ]; then
+            echo -e "backup file $backup_file found, skipping backup..."
+        else
+            mv "$config_file" "$backup_file"
+        fi
     else
         echo -e "Unsupported package manager. Neither APT nor RPM."
     fi
 }
 
 # pip (Python) 仓库配置
+# pip 本地代理下载无进度条显示，超时时间设置为 600 秒
 configure_pip() {
     if command -v pip &>/dev/null; then
-        mkdir -p ~/.pip
-        local timeout=300
+        mkdir -p "$HOME/.pip"
+        local timeout=600
         local repo_key
+        local config_updated=0
         if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
             repo_key="$REPOSITORY_KEY_PREFIX-pypi"
         else
             repo_key="pypi"
         fi
 
-        pip_conf_list=(
+        pip_conf_list=
+        (
           "$HOME/.pip/pip.conf"
           "$HOME/.config/pip/pip.conf"
           "/etc/pip.conf"
@@ -80,20 +98,38 @@ configure_pip() {
 
         for pip_conf_path in "${pip_conf_list[@]}"; do
             if [ -f "$pip_conf_path" ]; then
-                echo -e "pip configuration file found, backing up..."
-                mv "$pip_conf_path" "${pip_conf_path}.bak"
-            fi
+                echo -e "pip configuration $pip_conf_path found, backing up..."
+                local backup_file="${pip_conf_path}.bak"
+                if [ -f "$backup_file" ]; then
+                    echo -e "backup file $backup_file found, skipping backup..."
+                else
+                    mv "$pip_conf_path" "$backup_file"
+                fi
                 echo -e "[global]
 trusted-host = $ARTIFACTORY_HOST
 index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$repo_key/simple
 timeout = $timeout" > "$pip_conf_path"
+                echo -e "pip configuration file written to $pip_conf_path"
+                config_updated=1
+            fi
         done
+
+        # 如果没有更新任何配置文件，则在 $HOME/.pip/pip.conf 写入配置
+        if [ "$config_updated" -eq 0 ]; then
+            local pip_conf_default="$HOME/.pip/pip.conf"
+            echo -e "[global]
+trusted-host = $ARTIFACTORY_HOST
+index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$repo_key/simple
+timeout = $timeout" > "$pip_conf_default"
+            echo -e "pip configuration file written to $pip_conf_default"
+        fi
     else
         echo -e "pip not found, skipping pip repository configuration."
     fi
 }
 
 # conda (Anaconda) 仓库配置
+# conda 本地代理下载无进度条显示，超时时间设置为 600 秒
 configure_conda() {
     if command -v conda &>/dev/null; then
         local repo_key
@@ -102,22 +138,31 @@ configure_conda() {
         else
             repo_key="conda"
         fi
-        if [ -f ~/.condarc ]; then
+        local config_file="$HOME/.condarc"
+        local backup_file="$HOME/.condarc.bak"
+        if [ -f "$config_file" ]; then
             echo -e "conda configuration file found, backing up..."
-            mv ~/.condarc ~/.condarc.bak
+            if [ -f "$backup_file" ]; then
+                echo -e "backup file $backup_file found, skipping backup..."
+            else
+                mv "$config_file" "$backup_file"
+            fi
         fi
-        local repo_url="$ARTIFACTORY_URL/artifactory/$repo_key"
-        echo -e "channels:
-  - defaults
+        local default_repo_url="$ARTIFACTORY_URL/artifactory/$repo_key-remote"
+        local conda_forge_repo_url="$ARTIFACTORY_URL/artifactory/$repo_key-forge-remote"
+        local nvidia_repo_url="$ARTIFACTORY_URL/artifactory/$repo_key-nvidia-remote"
+        local pytorch_repo_url="$ARTIFACTORY_URL/artifactory/$repo_key-pytorch-remote"
+        echo -e "
 show_channel_urls: true
 default_channels:
-  - $repo_url
+  - $default_repo_url
 custom_channels:
-  conda-forge: $repo_url
-  nvidia: $repo_url
-  pytorch: $repo_url
-channel_alias: $repo_url
-ssl_verify: false " >> ~/.condarc
+  conda-forge: $conda_forge_repo_url
+  nvidia: $nvidia_repo_url
+  pytorch: $pytorch_repo_url
+ssl_verify: false
+remote_read_timeout_secs: 600 " > "$config_file"
+        echo -e "conda configuration file written to $config_file"
     else
         echo -e "conda not found, skipping conda repository configuration."
     fi
@@ -132,11 +177,19 @@ configure_npm() {
         else
             repo_key="npm"
         fi
-        if [ -f ~/.npmrc ]; then
+        local config_file="$HOME/.npmrc"
+        local backup_file="$HOME/.npmrc.bak"
+        if [ -f "$config_file" ]; then
             echo -e "npm configuration file found, backing up..."
-            mv ~/.npmrc ~/.npmrc.bak
+            if [ -f "$backup_file" ]; then
+                echo -e "backup file $backup_file found, skipping backup..."
+            else
+                mv "$config_file" "$backup_file"
+            fi
         fi
-        echo -e "registry=$ARTIFACTORY_URL/artifactory/api/npm/$repo_key/" >> ~/.npmrc
+        echo -e "registry=$ARTIFACTORY_URL/artifactory/api/npm/$repo_key/
+strict-ssl=false" >> "$config_file"
+        echo -e "npm configuration file written to $config_file"
     else
         echo -e "npm not found, skipping npm repository configuration."
     fi
@@ -145,6 +198,51 @@ configure_npm() {
 # Hugging Face 仓库配置
 configure_huggingface() {
     echo -e "Hugging Face repository configuration is not standard and should be handled manually."
+}
+
+function update_ssl_certificate() {
+    url=$1
+
+    # 默认端口是 443
+    port=443
+
+    # 解析 URL
+    if [[ $url =~ ^https?://([^:/]+)(:([0-9]+))?$ ]]; then
+        hostname=${BASH_REMATCH[1]}
+        [ -n "${BASH_REMATCH[3]}" ] && port=${BASH_REMATCH[3]}
+    elif [[ $url =~ ^([^:/]+)(:([0-9]+))?$ ]]; then
+        hostname=${BASH_REMATCH[1]}
+        [ -n "${BASH_REMATCH[3]}" ] && port=${BASH_REMATCH[3]}
+    else
+        echo -e "invalid url: $url"
+        return 1
+    fi
+
+    cert_file="$hostname.crt"
+    echo -e "obtaining certificate for $hostname:$port"
+
+    # 使用 OpenSSL 获取并保存证书
+    echo | openssl s_client -servername "$hostname" -connect "$hostname:$port" 2>/dev/null | openssl x509 > "$cert_file"
+
+    echo -e "certificate saved to $cert_file"
+
+    # 根据操作系统类型，更新证书存储
+    if [ -f /etc/debian_version ]; then
+        # Debian/Ubuntu
+        mkdir -p /usr/local/share/ca-certificates/
+        sudo mv "$cert_file" /usr/local/share/ca-certificates/
+        sudo update-ca-certificates
+    elif [ -f /etc/redhat-release ]; then
+        # CentOS/RedHat
+        mkdir -p /etc/pki/ca-trust/source/anchors/
+        sudo mv "$cert_file" /etc/pki/ca-trust/source/anchors/
+        sudo update-ca-trust extract
+    else
+        echo -e "Unsupported package manager. Neither APT nor RPM."
+        return 1
+    fi
+
+    echo -e "certificate updated successfully"
 }
 
 # 执行配置
@@ -156,5 +254,6 @@ else
     configure_conda
     configure_npm
     configure_huggingface
+    update_ssl_certificate "$ARTIFACTORY_URL"
     echo -e "All repositories configured successfully."
 fi
