@@ -23,7 +23,7 @@ RUN apt-get update --fix-missing && \
     rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip install --user --upgrade pip && \
-    ln -s /usr/local/bin/pip /usr/bin/pip${PYTHON_VERSION} && \
+    ln -snf /usr/local/bin/pip /usr/bin/pip${PYTHON_VERSION} && \
     pip install --no-cache-dir -r /python_requirements.txt
 
 
