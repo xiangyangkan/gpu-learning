@@ -38,7 +38,7 @@ x-common: &common
 services:
   deepstream:
     <<: *common
-    image: rivia/deepstream:${IMAGE_TAG__DEEPSTREAM:-6.3-triton-multiarch}
+    image: rivia/deepstream:${IMAGE_TAG__DEEPSTREAM:-6.4-triton-multiarch}
     hostname: deepstream
     ports:
       - "0.0.0.0:18554:8554"
