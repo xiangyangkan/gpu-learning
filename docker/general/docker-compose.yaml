@@ -15,6 +15,8 @@ x-common: &common
   environment:
     - NOTEBOOK_USER:user
     - NVIDIA_VISIBLE_DEVICES:"all"
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
   working_dir: /root/user
   volumes:
     - WORKSPACE/user:/root/user
