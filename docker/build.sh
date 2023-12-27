@@ -98,29 +98,6 @@ function update_all() {
     update_deepstream_version "$deepstream_version" "$pyds_version"
 }
 
-function build_images() {
-    local ngc_version="$1"
-    local tensorrt_version="$2"
-    local deepstream_version="$3"
-    docker build -t rivia/pytorch:"$ngc_version" -f general/pytorch.Dockerfile .
-    docker build -t rivia/tensorflow:"$ngc_version" -f general/tensorflow.Dockerfile .
-    docker build -t rivia/tensorrt:"$tensorrt_version-r$ngc_version" -f general/tensorrt.Dockerfile .
-    docker build -t rivia/tritonserver:"$ngc_version" -f general/triton.Dockerfile .
-    docker build -t rivia/triton_backend:"$ngc_version" -f general/triton_backend.Dockerfile .
-    docker build -t rivia/nemo:"$ngc_version" -f nemo/nemo.Dockerfile .
-    docker build -t rivia/deepstream:"$deepstream_version" -f deepstream/deepstream.Dockerfile .
-
-    # Push images to docker hub
-    docker push rivia/pytorch:"$ngc_version"
-    docker push rivia/tensorflow:"$ngc_version"
-    docker push rivia/tensorrt:"$tensorrt_version-r$ngc_version"
-    docker push rivia/tritonserver:"$ngc_version"
-    docker push rivia/triton_backend:"$ngc_version"
-    docker push rivia/nemo:"$ngc_version"
-    docker push rivia/deepstream:"$deepstream_version"
-}
-
-
 function build_pytorch_image() {
     local ngc_version="$1"
     docker build -t rivia/pytorch:"$ngc_version" -f general/pytorch.Dockerfile .
@@ -152,6 +129,22 @@ function build_triton_backend_image() {
     docker push rivia/triton_backend:"$ngc_version" && docker system prune -a -f
 }
 
+function build_triton_trtllm_backend_image() {
+    local ngc_version="$1"
+    cp general/triton_backend.Dockerfile general/triton_trtllm_backend.Dockerfile
+    sed -i -e "s|py3|trtllm-python-py3|" general/triton_trtllm_backend.Dockerfile
+    docker build -t rivia/triton_backend:"${ngc_version}-trtllm" -f general/triton_trtllm_backend.Dockerfile .
+    docker push rivia/triton_backend:"${ngc_version}-trtllm" && docker system prune -a -f
+}
+
+function build_triton_vllm_backend_image() {
+    local ngc_version="$1"
+    cp general/triton_backend.Dockerfile general/triton_vllm_backend.Dockerfile
+    sed -i -e "s|py3|vllm-python-py3|" general/triton_vllm_backend.Dockerfile
+    docker build -t rivia/triton_backend:"${ngc_version}-vllm" -f general/triton_vllm_backend.Dockerfile .
+    docker push rivia/triton_backend:"${ngc_version}-vllm" && docker system prune -a -f
+}
+
 function build_deepstream_image() {
     local deepstream_version="$1"
     docker build -t rivia/deepstream:"$deepstream_version" -f deepstream/deepstream.Dockerfile .
@@ -179,5 +172,7 @@ build_tensorflow_image "$NGC_VERSION" || exit 1
 build_triton_server_image "$NGC_VERSION" || exit 1
 build_tensorrt_image "$NGC_VERSION" "$TRT_VERSION" || exit 1
 build_triton_backend_image "$NGC_VERSION" || exit 1
+build_triton_trtllm_backend_image "$NGC_VERSION" || exit 1
+build_triton_vllm_backend_image "$NGC_VERSION" || exit 1
 build_deepstream_image "$DEEPSTREAM_VERSION" || exit 1
 build_nemo_image 23.08 || exit 1
