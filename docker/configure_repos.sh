@@ -87,8 +87,7 @@ configure_pip() {
             repo_key="pypi"
         fi
 
-        pip_conf_list=
-        (
+        pip_conf_list=(
           "$HOME/.pip/pip.conf"
           "$HOME/.config/pip/pip.conf"
           "/etc/pip.conf"
