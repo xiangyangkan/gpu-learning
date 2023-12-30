@@ -222,7 +222,10 @@ function update_ssl_certificate() {
 
     # 使用 OpenSSL 获取并保存证书
     echo | openssl s_client -servername "$hostname" -connect "$hostname:$port" 2>/dev/null | openssl x509 > "$cert_file"
-
+    if [ ! -f "$cert_file" ]; then
+        echo -e "failed to obtain certificate for $hostname:$port"
+        return 1
+    fi
     echo -e "certificate saved to $cert_file"
 
     # 根据操作系统类型，更新证书存储
