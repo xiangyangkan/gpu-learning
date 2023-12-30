@@ -1,179 +1,139 @@
-
-function update_python_version() {
-    local python_version="$1"
-    declare -a vars
-    vars=(
-      "general/pytorch.Dockerfile"
-      "general/tensorflow.Dockerfile"
-      "general/tensorrt.Dockerfile"
-      "general/triton.Dockerfile"
-      "general/triton_backend.Dockerfile"
-      "deepstream/deepstream.Dockerfile"
-      # "nemo/nemo.Dockerfile" # nemo doesn't support python 3.10 yet
-    )
-    for var_name in "${vars[@]}"; do
-      sed -i -e "s|^ENV PYTHON_VERSION=.*|ENV PYTHON_VERSION=${python_version}|" "$var_name"
-    done
-}
-
-function update_ngc_version() {
- local ngc_version="$1"
- declare -a vars
-  vars=(
-    "general/pytorch.Dockerfile"
-    "general/tensorflow.Dockerfile"
-    "general/triton.Dockerfile"
-    "general/triton_backend.Dockerfile"
-    # "nemo/nemo.Dockerfile" # nemo doesn't support ngc 23.10 yet
-  )
-  for var_name in "${vars[@]}"; do
-    sed -i -e "s|^ARG NGC_VERSION=.*|ARG NGC_VERSION=${ngc_version}|" "$var_name"
-  done
-}
-
-function update_conda_version() {
-    local conda_version="$1"
-    declare -a vars
-    vars=(
-      "general/triton_backend.Dockerfile"
-      "deepstream/deepstream.Dockerfile"
-    )
-    for var_name in "${vars[@]}"; do
-      sed -i -e "s|^ARG CONDA_VERSION=.*|ARG CONDA_VERSION=${conda_version}|" "$var_name"
-    done
-}
-
-function update_cmake_version() {
-    local cmake_version="$1"
-    declare -a vars
-    vars=(
-      "general/tensorrt.Dockerfile"
-      "general/triton_backend.Dockerfile"
-    )
-    for var_name in "${vars[@]}"; do
-      sed -i -e "s|^ENV CMAKE_VERSION=.*|ENV CMAKE_VERSION=${cmake_version}|" "$var_name"
-    done
-}
-
-function update_tensorrt_version() {
-    local tensorrt_version="$1"
-    local cuda_version="$2"
-    declare -a vars
-    vars=(
-      "general/tensorrt.Dockerfile"
-    )
-    for var_name in "${vars[@]}"; do
-      sed -i -e "s|^ENV TRT_VERSION=.*|ENV TRT_VERSION=${tensorrt_version}|" "$var_name"
-      sed -i -e "s|^ARG CUDA_VERSION=.*|ARG CUDA_VERSION=${cuda_version}|" "$var_name"
-    done
-}
-
-function update_deepstream_version() {
-    local deepstream_version="$1"
-    local pyds_version="$2"
-    declare -a vars
-    vars=(
-      "deepstream/deepstream.Dockerfile"
-    )
-    for var_name in "${vars[@]}"; do
-      sed -i -e "s|DEEPSTREAM_VERSION=.*|DEEPSTREAM_VERSION=${deepstream_version}|" "$var_name"
-      sed -i -e "s|PYDS_VERSION=.*|PYDS_VERSION=${pyds_version}|" "$var_name"
-    done
-}
-
-function update_all() {
-    local python_version="$1"
-    local ngc_version="$2"
-    local conda_version="$3"
-    local cmake_version="$4"
-    local tensorrt_version="$5"
-    local cuda_version="$6"
-    local deepstream_version="$7"
-    local pyds_version="$8"
-    update_python_version "$python_version"
-    update_ngc_version "$ngc_version"
-    update_conda_version "$conda_version"
-    update_cmake_version "$cmake_version"
-    update_tensorrt_version "$tensorrt_version" "$cuda_version"
-    update_deepstream_version "$deepstream_version" "$pyds_version"
-}
+#!/bin/bash
+WORKING_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 function build_pytorch_image() {
     local ngc_version="$1"
-    docker build -t rivia/pytorch:"$ngc_version" -f general/pytorch.Dockerfile .
+    local python_version="$2"
+    local base_image="nvcr.io/nvidia/pytorch:$ngc_version-py3"
+    docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t rivia/pytorch:"$ngc_version" -f Dockerfile . || exit 1
     docker push rivia/pytorch:"$ngc_version" && docker system prune -a -f
 }
 
 function build_tensorflow_image() {
     local ngc_version="$1"
-    docker build -t rivia/tensorflow:"$ngc_version" -f general/tensorflow.Dockerfile .
+    local python_version="$2"
+    local base_image="nvcr.io/nvidia/tensorflow:$ngc_version-tf2-py3"
+    docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t rivia/tensorflow:"$ngc_version" -f Dockerfile . || exit 1
     docker push rivia/tensorflow:"$ngc_version" && docker system prune -a -f
 }
 
 function build_triton_server_image() {
     local ngc_version="$1"
-    docker build -t rivia/tritonserver:"$ngc_version" -f general/triton.Dockerfile .
+    local base_image="nvcr.io/nvidia/tritonserver:$ngc_version-py3"
+    docker build --target base --build-arg BASE_IMAGE="$base_image" \
+      -t rivia/tritonserver:"$ngc_version" -f Dockerfile . || exit 1
     docker push rivia/tritonserver:"$ngc_version" && docker system prune -a -f
 }
 
 function build_tensorrt_image() {
     local ngc_version="$1"
-    local tensorrt_version="$2"
-    docker build -t rivia/tensorrt:"$tensorrt_version-r$ngc_version" -f general/tensorrt.Dockerfile .
-    docker push rivia/tensorrt:"$tensorrt_version-r$ngc_version" && docker system prune -a -f
+    local python_version="$2"
+    local cmake_version="$3"
+    local bazelisk_version="$4"
+    local base_image="nvcr.io/nvidia/tensorrt:$ngc_version-py3"
+    local stage_image="tensorrt:devel"
+    docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t $stage_image -f Dockerfile . || exit 1
+    docker build --target build --build-arg BASE_IMAGE="$stage_image" \
+      --build-arg CMAKE_VERSION="$cmake_version" --build-arg BAZELISK_VERSION="$bazelisk_version" \
+      -t rivia/tensorrt:"$ngc_version" -f Dockerfile . || exit 1
+    docker push rivia/tensorrt:"$ngc_version" && docker system prune -a -f
+}
+
+function build_trtllm_image() {
+    local trtllm_version="$1"
+    local python_version="$2"
+    local base_image="tensorrt_llm/release:latest"
+    local stage_image="trtllm:devel"
+    git clone -b "v$trtllm_version" https://github.com/NVIDIA/TensorRT-LLM.git general/TensorRT-LLM
+    cd general/TensorRT-LLM || exit 1
+    git submodule update --init --recursive
+    git lfs install
+    git lfs pull
+    docker build --target release --build-arg BUILD_WHEEL_ARGS="--clean --python_bindings --trt_root /usr/local/tensorrt" \
+      --file docker/Dockerfile.multi --tag $base_image . || exit 1
+    cd "$WORKING_DIR" || exit 1
+    docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t $stage_image -f Dockerfile . || exit 1
+    docker build --target tensorrt --build-arg BASE_IMAGE="$stage_image" \
+      -t rivia/tensorrt_llm:"$trtllm_version" -f Dockerfile . || exit 1
+    docker push rivia/tensorrt_llm:"$trtllm_version" && docker system prune -a -f
 }
 
 function build_triton_backend_image() {
     local ngc_version="$1"
-    docker build -t rivia/triton_backend:"$ngc_version" -f general/triton_backend.Dockerfile .
-    docker push rivia/triton_backend:"$ngc_version" && docker system prune -a -f
-}
-
-function build_triton_trtllm_backend_image() {
-    local ngc_version="$1"
-    cp general/triton_backend.Dockerfile general/triton_trtllm_backend.Dockerfile
-    sed -i -e "s|py3|trtllm-python-py3|" general/triton_trtllm_backend.Dockerfile
-    docker build -t rivia/triton_backend:"${ngc_version}-trtllm" -f general/triton_trtllm_backend.Dockerfile .
-    docker push rivia/triton_backend:"${ngc_version}-trtllm" && docker system prune -a -f
-}
-
-function build_triton_vllm_backend_image() {
-    local ngc_version="$1"
-    cp general/triton_backend.Dockerfile general/triton_vllm_backend.Dockerfile
-    sed -i -e "s|py3|vllm-python-py3|" general/triton_vllm_backend.Dockerfile
-    docker build -t rivia/triton_backend:"${ngc_version}-vllm" -f general/triton_vllm_backend.Dockerfile .
-    docker push rivia/triton_backend:"${ngc_version}-vllm" && docker system prune -a -f
+    local python_version="$2"
+    local conda_version="$3"
+    local cmake_version="$4"
+    local bazelisk_version="$5"
+    local backend_type="$6"
+    local base_image
+    if [[ "$backend_type" == "trtllm" ]]; then
+      base_image="nvcr.io/nvidia/tritonserver:$ngc_version-trtllm-python-py3"
+      tag="$ngc_version-trtllm"
+    elif [[ "$backend_type" == "vllm" ]]; then
+      base_image="nvcr.io/nvidia/tritonserver:$ngc_version-vllm-python-py3"
+      tag="$ngc_version-vllm"
+    else
+      base_image="nvcr.io/nvidia/tritonserver:$ngc_version-py3"
+      tag="$ngc_version"
+    fi
+    local stage_1_image="triton_backend:conda"
+    local stage_2_image="triton_backend:build"
+    docker build --target conda --build-arg BASE_IMAGE="$base_image" \
+      --build-arg PYTHON_VERSION="$python_version" --build-arg CONDA_VERSION="$conda_version" \
+      -t $stage_1_image -f Dockerfile . || exit 1
+    docker build --target devel --build-arg BASE_IMAGE="$stage_1_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t $stage_2_image -f Dockerfile . || exit 1
+    docker build --target build --build-arg BASE_IMAGE="$stage_2_image" \
+      --build-arg CMAKE_VERSION="$cmake_version" --build-arg BAZELISK_VERSION="$bazelisk_version" \
+      -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
+    docker push rivia/triton_backend:"$tag" && docker system prune -a -f
 }
 
 function build_deepstream_image() {
     local deepstream_version="$1"
-    docker build -t rivia/deepstream:"$deepstream_version" -f deepstream/deepstream.Dockerfile .
+    local python_version="$2"
+    local pyds_version="$3"
+    local arch="$4"
+    local base_image="nvcr.io/nvidia/deepstream:$deepstream_version"
+    local stage_image="deepstream:devel"
+    docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t $stage_image -f Dockerfile . || exit 1
+    docker build --target deepstream --build-arg BASE_IMAGE="$stage_image" --build-arg ARCH="$arch" \
+      --build-arg DEEPSTREAM_VERSION="$deepstream_version" --build-arg PYDS_VERSION="$pyds_version" \
+      -t rivia/deepstream:"$deepstream_version" -f Dockerfile . || exit 1
     docker push rivia/deepstream:"$deepstream_version" && docker system prune -a -f
 }
 
 function build_nemo_image() {
     local ngc_version="$1"
-    docker build -t rivia/nemo:"$ngc_version" -f nemo/nemo.Dockerfile .
+    local python_version="$2"
+    local base_image="nvcr.io/nvidia/nemo:$ngc_version"
+    docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t rivia/nemo:"$ngc_version" -f Dockerfile . || exit 1
     docker push rivia/nemo:"$ngc_version" && docker system prune -a -f
 }
 
 
-PYTHON_VERSION="3.10"
 NGC_VERSION="23.12"
+PYTHON_VERSION="3.10"
 CONDA_VERSION="23.11.0-2"
 CMAKE_VERSION="3.28.1"
-TRT_VERSION="8.6.1.6"
-CUDA_VERSION="12.1.1"
+BAZELISK_VERSION="1.18.0"
 DEEPSTREAM_VERSION="6.4-triton-multiarch"
 PYDS_VERSION="1.1.10"
+TRTLLM_VERSION="0.7.1"
 dos2unix ./*
-update_all "$PYTHON_VERSION" "$NGC_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$TRT_VERSION" "$CUDA_VERSION" "$DEEPSTREAM_VERSION" "$PYDS_VERSION" || exit 1
-build_pytorch_image "$NGC_VERSION" || exit 1
-build_tensorflow_image "$NGC_VERSION" || exit 1
+build_pytorch_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
+build_tensorflow_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
 build_triton_server_image "$NGC_VERSION" || exit 1
-build_tensorrt_image "$NGC_VERSION" "$TRT_VERSION" || exit 1
-build_triton_backend_image "$NGC_VERSION" || exit 1
-build_triton_trtllm_backend_image "$NGC_VERSION" || exit 1
-build_triton_vllm_backend_image "$NGC_VERSION" || exit 1
-build_deepstream_image "$DEEPSTREAM_VERSION" || exit 1
-build_nemo_image 23.08 || exit 1
+build_tensorrt_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" || exit 1
+build_trtllm_image "$TRTLLM_VERSION" "$PYTHON_VERSION" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "general" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "vllm" || exit 1
+build_deepstream_image "$DEEPSTREAM_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "x86_64" || exit 1
+build_nemo_image 23.08 3.8 || exit 1
