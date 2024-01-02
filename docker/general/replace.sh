@@ -19,5 +19,5 @@ change_user_env "$COMPOSE_FILE" "$USER" "$WORKSPACE"
 replace_tag_in_env_file "rivia/pytorch" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__PYTORCH" 2
 replace_tag_in_env_file "rivia/tensorflow" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__TENSORFLOW" 2
 replace_tag_in_env_file "rivia/tensorrt" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__TENSORRT" 2
-replace_tag_in_env_file "rivia/tritonserver" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__TRITONSERVER" 2
-replace_tag_in_env_file "rivia/triton_backend" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__TRITON_BACKEND" 2
+replace_tag_in_env_file "rivia/nemo" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__NEMO" 2
+replace_tag_in_env_file "rivia/tensorrt_llm" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__TRTLLM" 2

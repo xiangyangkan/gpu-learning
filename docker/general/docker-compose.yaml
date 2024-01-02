@@ -64,7 +64,7 @@ services:
 
   tensorrt:
     <<: *common
-    image: ${DOCKER_DOMAIN}rivia/tensorrt:${IMAGE_TAG__TENSORRT:23.12}
+    image: ${DOCKER_DOMAIN}rivia/tensorrt:${IMAGE_TAG__TENSORRT:-23.12}
     hostname: tensorrt
     container_name: tensorrt
     ports:
