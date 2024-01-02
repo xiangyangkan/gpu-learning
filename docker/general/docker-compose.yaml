@@ -42,53 +42,100 @@ services:
     <<: *common
     image: ${DOCKER_DOMAIN}rivia/pytorch:${IMAGE_TAG__PYTORCH:-23.12}
     hostname: pytorch
+    container_name: pytorch
     ports:
-      - "0.0.0.0:8888:8888"
-      - "0.0.0.0:1234:22"
-    container_name: pytorch-user
+      - 0.0.0.0:${PYTORCH_SSH_PORT:-1122}:22
+      - 0.0.0.0:${PYTORCH_NOTEBOOK_PORT:-10188}:8888
+      - 0.0.0.0:${PYTORCH_EXTRA_PORT_1:-10199}:19999
+      - 0.0.0.0:${PYTORCH_EXTRA_PORT_2:-20199}:29999
+      - 0.0.0.0:${PYTORCH_EXTRA_PORT_3:-30199}:39999
 
   tensorflow:
     <<: *common
     image: ${DOCKER_DOMAIN}rivia/tensorflow:${IMAGE_TAG__TENSORFLOW:-23.12}
     hostname: tensorflow
+    container_name: tensorflow
     ports:
-      - "0.0.0.0:18888:8888"
-      - "0.0.0.0:11234:22"
-    container_name: tensorflow-user
+      - 0.0.0.0:${TENSORFLOW_SSH_PORT:-1222}:22
+      - 0.0.0.0:${TENSORFLOW_NOTEBOOK_PORT:-10288}:8888
+      - 0.0.0.0:${TENSORFLOW_EXTRA_PORT_1:-10299}:19999
+      - 0.0.0.0:${TENSORFLOW_EXTRA_PORT_2:-20299}:29999
+      - 0.0.0.0:${TENSORFLOW_EXTRA_PORT_3:-30299}:39999
 
   tensorrt:
     <<: *common
-    image: ${DOCKER_DOMAIN}rivia/tensorrt:${IMAGE_TAG__TENSORRT:-8.6.1.6-r23.12}
+    image: ${DOCKER_DOMAIN}rivia/tensorrt:${IMAGE_TAG__TENSORRT:23.12}
     hostname: tensorrt
+    container_name: tensorrt
     ports:
-      - "0.0.0.0:10001:22"
-      - "0.0.0.0:10088:8888"
-    container_name: tensorrt-user
-
-  triton_server:
-    <<: *common
-    image: ${DOCKER_DOMAIN}rivia/tritonserver:${IMAGE_TAG__TRITONSERVER:-23.12}
-    hostname: triton_server
-    ports:
-      - "0.0.0.0:10022:22"
-      - "0.0.0.0:8000:8000"
-      - "0.0.0.0:8001:8001"
-      - "0.0.0.0:8002:8002"
-    container_name: triton_server-user
+      - 0.0.0.0:${TENSORRT_SSH_PORT:-1322}:22
+      - 0.0.0.0:${TENSORRT_NOTEBOOK_PORT:-10388}:8888
+      - 0.0.0.0:${TENSORRT_EXTRA_PORT_1:-10399}:19999
+      - 0.0.0.0:${TENSORRT_EXTRA_PORT_2:-20399}:29999
+      - 0.0.0.0:${TENSORRT_EXTRA_PORT_3:-30399}:39999
 
   triton_backend:
     <<: *common
     image: ${DOCKER_DOMAIN}rivia/triton_backend:${IMAGE_TAG__TRITON_BACKEND:-23.12}
-    hostname: triton_backend
+    hostname: triton-backend
+    container_name: triton-backend
     ports:
-      - "0.0.0.0:20022:22"
-      - "0.0.0.0:20088:8888"
-      - "0.0.0.0:18000:8000"
-      - "0.0.0.0:18001:8001"
-      - "0.0.0.0:18002:8002"
-    container_name: triton_backend-user
+      - 0.0.0.0:${TRITON_BACKEND_SSH_PORT:-1422}:22
+      - 0.0.0.0:${TRITON_BACKEND_NOTEBOOK_PORT:-10488}:8888
+      - 0.0.0.0:${TRITON_BACKEND_EXTRA_PORT_1:-10499}:19999
+      - 0.0.0.0:${TRITON_BACKEND_EXTRA_PORT_2:-20499}:29999
+      - 0.0.0.0:${TRITON_BACKEND_EXTRA_PORT_3:-30499}:39999
+
+  nemo:
+    <<: *common
+    image: ${DOCKER_DOMAIN}rivia/nemo:${IMAGE_TAG__NEMO:-23.08}
+    hostname: nemo
+    container_name: nemo
+    ports:
+      - 0.0.0.0:${NEMO_SSH_PORT:-1522}:22
+      - 0.0.0.0:${NEMO_NOTEBOOK_PORT:-10588}:8888
+      - 0.0.0.0:${NEMO_EXTRA_PORT_1:-10599}:19999
+      - 0.0.0.0:${NEMO_EXTRA_PORT_2:-20599}:29999
+      - 0.0.0.0:${NEMO_EXTRA_PORT_3:-30599}:39999
+
+  tensorrt-llm:
+    <<: *common
+    image: ${DOCKER_DOMAIN}rivia/tensorrt_llm:${IMAGE_TAG__TRTLLM:-0.7.1}
+    hostname: tensorrt-llm
+    container_name: tensorrt-llm
+    ports:
+      - 0.0.0.0:${TRTLLM_SSH_PORT:-1622}:22
+      - 0.0.0.0:${TRTLLM_NOTEBOOK_PORT:-10688}:8888
+      - 0.0.0.0:${TRTLLM_EXTRA_PORT_1:-10699}:19999
+      - 0.0.0.0:${TRTLLM_EXTRA_PORT_2:-20699}:29999
+      - 0.0.0.0:${TRTLLM_EXTRA_PORT_3:-30699}:39999
+
+  triton_trtllm_backend:
+    <<: *common
+    image: ${DOCKER_DOMAIN}rivia/triton_backend:${IMAGE_TAG__TRITON_TRTLLM_BACKEND:-23.12-trtllm}
+    hostname: triton-trtllm-backend
+    container_name: triton-trtllm-backend
+    ports:
+      - 0.0.0.0:${TRITON_TRTLLM_BACKEND_SSH_PORT:-1722}:22
+      - 0.0.0.0:${TRITON_TRTLLM_BACKEND_NOTEBOOK_PORT:-10788}:8888
+      - 0.0.0.0:${TRITON_TRTLLM_BACKEND_EXTRA_PORT_1:-10799}:19999
+      - 0.0.0.0:${TRITON_TRTLLM_BACKEND_EXTRA_PORT_2:-20799}:29999
+      - 0.0.0.0:${TRITON_TRTLLM_BACKEND_EXTRA_PORT_3:-30799}:39999
+
+  triton_vllm_backend:
+    <<: *common
+    image: ${DOCKER_DOMAIN}rivia/triton_backend:${IMAGE_TAG__TRITON_VLLM_BACKEND:-23.12-vllm}
+    hostname: triton-vllm-backend
+    container_name: triton-vllm-backend
+    ports:
+      - 0.0.0.0:${TRITON_VLLM_BACKEND_SSH_PORT:-1822}:22
+      - 0.0.0.0:${TRITON_VLLM_BACKEND_NOTEBOOK_PORT:-10888}:8888
+      - 0.0.0.0:${TRITON_VLLM_BACKEND_EXTRA_PORT_1:-10899}:19999
+      - 0.0.0.0:${TRITON_VLLM_BACKEND_EXTRA_PORT_2:-20899}:29999
+      - 0.0.0.0:${TRITON_VLLM_BACKEND_EXTRA_PORT_3:-30899}:39999
+
 
 networks:
   default:
-    name: gpu-general-user
+    name: gpu-general
     driver: bridge

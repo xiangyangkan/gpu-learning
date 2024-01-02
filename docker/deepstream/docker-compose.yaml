@@ -40,24 +40,31 @@ x-common: &common
 services:
   deepstream:
     <<: *common
-    image: rivia/deepstream:${IMAGE_TAG__DEEPSTREAM:-6.4-triton-multiarch}
+    image: ${DOCKER_DOMAIN}rivia/deepstream:${IMAGE_TAG__DEEPSTREAM:-6.4-triton-multiarch}
     hostname: deepstream
+    container_name: deepstream
     ports:
-      - "0.0.0.0:18554:8554"
-      - "0.0.0.0:10089:8888"
-      - "0.0.0.0:40004:22"
-    container_name: deepstream-user
+      - 0.0.0.0:${DEEPSTREAM_SSH_PORT:-12122}:22
+      - 0.0.0.0:${DEEPSTREAM_NOTEBOOK_PORT:-12188}:8888
+      - 0.0.0.0:${DEEPSTREAM_RTSP_PORT:-18554}:8554
+      - 0.0.0.0:${DEEPSTREAM_EXTRA_PORT_1:-12199}:19999
+      - 0.0.0.0:${DEEPSTREAM_EXTRA_PORT_2:-22199}:29999
+      - 0.0.0.0:${DEEPSTREAM_EXTRA_PORT_3:-32199}:39999
+
 
   rtsp-server:
     <<: *common
-    image: aler9/rtsp-simple-server:${IMAGE_TAG__RTSP:-latest}
+    image: ${DOCKER_DOMAIN}aler9/rtsp-simple-server:${IMAGE_TAG__RTSP:-latest}
     hostname: rtsp-server
+    container_name: rtsp-server
     ports:
-      - "0.0.0.0:8554:8554"
-      - "0.0.0.0:1935:1935"
-    container_name: rtsp-server-user
+      - 0.0.0.0:${RTSP_RTSP_PORT:-8554}:8554
+      - 0.0.0.0:${RTSP_EXTRA_PORT_1:-12299}:19999
+      - 0.0.0.0:${RTSP_EXTRA_PORT_2:-22299}:29999
+      - 0.0.0.0:${RTSP_EXTRA_PORT_3:-32299}:39999
+
 
 networks:
   default:
-    name: gpu-deepstream-user
+    name: gpu-deepstream
     driver: bridge
