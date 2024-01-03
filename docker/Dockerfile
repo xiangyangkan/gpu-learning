@@ -26,7 +26,7 @@ RUN if [ "${UPDATE_CUDA_SOURCE}" = "true" ]; then \
         apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub; \
     fi
 RUN apt-get update --fix-missing && apt-get install --no-install-recommends --allow-unauthenticated -y \
-    openssh-server pwgen supervisor proxychains && \
+    openssh-server pwgen supervisor proxychains iptables redsocks && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     sed -i "s/.*UsePrivilegeSeparation.*/UsePrivilegeSeparation no/g" /etc/ssh/sshd_config && \
@@ -39,6 +39,7 @@ ENV AUTHORIZED_KEYS **None**
 EXPOSE 22
 
 COPY proxychains.conf /etc/proxychains.conf
+COPY redsocks.conf /etc/redsocks.conf
 COPY bashrc /etc/bash.bashrc
 COPY configure_repos.sh /configure_repos.sh
 RUN chmod a+rwx /etc/bash.bashrc && chmod +x /configure_repos.sh

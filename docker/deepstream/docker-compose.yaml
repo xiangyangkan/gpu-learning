@@ -25,6 +25,8 @@ x-common: &common
     memlock: -1
     stack: 67108864
   shm_size: "10gb"
+  cap_add:
+    - NET_ADMIN
   deploy:
     restart_policy:
       condition: on-failure

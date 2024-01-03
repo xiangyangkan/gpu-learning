@@ -6,7 +6,7 @@ fi
 
 # APT (Debian/Ubuntu) 或 RPM (Red Hat/CentOS) 仓库配置
 # 需要在/usr/local/share/ca-certificates/目录下放置证书文件
-configure_package_manager() {
+function configure_package_manager() {
     if [ -f /etc/debian_version ]; then
         # 获取发行版代号，如 'jammy'
         local distro
@@ -75,7 +75,7 @@ EOF
 
 # pip (Python) 仓库配置
 # pip 本地代理下载无进度条显示，超时时间设置为 600 秒
-configure_pip() {
+function configure_pip() {
     if command -v pip &>/dev/null; then
         mkdir -p "$HOME/.pip"
         local timeout=600
@@ -129,7 +129,7 @@ timeout = $timeout" > "$pip_conf_default"
 
 # conda (Anaconda) 仓库配置
 # conda 本地代理下载无进度条显示，超时时间设置为 600 秒
-configure_conda() {
+function configure_conda() {
     if command -v conda &>/dev/null; then
         local repo_key
         if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
@@ -168,7 +168,7 @@ remote_read_timeout_secs: 600 " > "$config_file"
 }
 
 # npm (Node.js) 仓库配置
-configure_npm() {
+function configure_npm() {
     if command -v npm &>/dev/null; then
         local repo_key
         if [ "$REPOSITORY_KEY_PREFIX" != "" ]; then
@@ -195,7 +195,7 @@ strict-ssl=false" >> "$config_file"
 }
 
 # Hugging Face 仓库配置
-configure_huggingface() {
+function configure_huggingface() {
     echo -e "Hugging Face repository configuration is not standard and should be handled manually."
 }
 
@@ -247,6 +247,23 @@ function update_ssl_certificate() {
     echo -e "certificate updated successfully"
 }
 
+function add_transparent_proxy() {
+  sudo iptables -t nat -N REDSOCKS
+  sudo iptables -t nat -A REDSOCKS -d 0.0.0.0/8 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 10.0.0.0/8 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 100.64.0.0/10 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 127.0.0.0/8 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 169.254.0.0/16 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 172.16.0.0/12 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 192.168.0.0/16 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 198.18.0.0/15 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 224.0.0.0/4 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -d 240.0.0.0/4 -j RETURN
+  sudo iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-ports 12345
+  sudo iptables -t nat -A OUTPUT -p tcp -j REDSOCKS
+  sudo service redsocks restart
+}
+
 # 执行配置
 if [[ -z "$ARTIFACTORY_URL" ]]; then
     echo -e "environment variables ARTIFACTORY_URL not set, skipping repository configuration."
@@ -258,4 +275,8 @@ else
     configure_huggingface
     update_ssl_certificate "$ARTIFACTORY_URL"
     echo -e "All repositories configured successfully."
+
+    if [[ -n "$TRANSPARENT_PROXY" ]]; then
+      add_transparent_proxy
+    fi
 fi

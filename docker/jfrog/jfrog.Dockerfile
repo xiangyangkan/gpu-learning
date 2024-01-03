@@ -15,7 +15,7 @@ RUN apt-get update --fix-missing && apt-get --fix-broken install -y \
     rm -rf /var/lib/apt/lists/*
 
 COPY proxychains.conf /etc/proxychains.conf
-COPY jfrog/redsocks.conf /etc/redsocks.conf
+COPY redsocks.conf /etc/redsocks.conf
 COPY jfrog/supervisord.conf /
 COPY jfrog/iptables.sh /
 RUN chmod +x /iptables.sh
