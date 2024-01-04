@@ -8,6 +8,11 @@
 - 启动性能模式   
   `cpupower -c all frequency-set -g performance`
 
+## 打开GPU持久化模式
+```bash
+sudo nvidia-smi -pm 1
+```
+
 ## NFS挂载
 用于多台GPU机器之间的文件共享(服务器重启后需要重新挂载)  
  `mount -t nfs -o vers=3,nolock,proto=tcp,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 
@@ -17,8 +22,6 @@
 ```bash
 sudo proxychains bash build.sh
 ```
-
-> TensorRT的版本要与Triton Server版本保持兼容, 版本对应关系参考[支持矩阵](https://docs.nvidia.com/deeplearning/frameworks/support-matrix/index.html)
 
 ## 启动服务
 
