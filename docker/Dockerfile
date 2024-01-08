@@ -25,7 +25,7 @@ ARG UPDATE_CUDA_SOURCE=true
 RUN if [ "${UPDATE_CUDA_SOURCE}" = "true" ]; then \
         apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub; \
     fi
-RUN apt-get update --fix-missing && apt-get install --no-install-recommends --allow-unauthenticated -y \
+RUN apt-get update --fix-missing && apt-get install --allow-unauthenticated -y \
     openssh-server pwgen supervisor proxychains iptables redsocks && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
