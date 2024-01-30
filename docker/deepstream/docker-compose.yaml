@@ -7,9 +7,7 @@ x-common: &common
       max-size: 100m
       max-file: "3"
       tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
-  restart: "unless-stopped"
-  stop_grace_period: 5m
-  stop_signal: SIGINT
+  restart: "always"
   env_file:
     - .env
   environment:
@@ -28,11 +26,6 @@ x-common: &common
   cap_add:
     - NET_ADMIN
   deploy:
-    restart_policy:
-      condition: on-failure
-      delay: 5s
-      max_attempts: 3
-      window: 120s
     resources:
       reservations:
         devices:
