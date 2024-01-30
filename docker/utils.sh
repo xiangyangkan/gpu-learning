@@ -5,8 +5,8 @@ GITHUB_TOKEN="xxx" # 请替换为你的GitHub Token
 # 纯数字版本
 STRICT_FILTER='select((test("^v?[0-9]+(\\.[0-9]+)*$")))'
 # 数字版本号后面允许带其他字符
-MODERATE_FILTER='select((test("^v?[0-9]+(\\.[0-9]+)*(-[a-zA-Z0-9]+)?$"))
-  and (test("latest"; "i") | not) and (test("windows"; "i") | not)))'
+MODERATE_FILTER='select((test("^v?[0-9]+(\\.[0-9]+)*(-[a-zA-Z0-9]+)*$"))
+  and (test("latest"; "i") | not) and (test("windows"; "i") | not))'
 
 function get_dockerhub_latest_tag() {
     # 参数：仓库名

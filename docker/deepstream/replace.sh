@@ -16,5 +16,5 @@ function change_user_env() {
 
 dos2unix "$COMPOSE_FILE" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE"
 change_user_env "$COMPOSE_FILE" "$USER" "$WORKSPACE"
-replace_tag_in_env_file "rivia/deepstream" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__DEEPSTREAM" 2
+replace_tag_in_env_file "rivia/deepstream" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__DEEPSTREAM" 2 "moderate"
 replace_tag_in_env_file "aler9/rtsp-simple-server" "$SOURCE_ENV_FILE" "$TARGET_ENV_FILE" "IMAGE_TAG__RTSP" 2
