@@ -18,7 +18,8 @@ docker-compose -f deepstream.yml -p deepstream up -d
 cd /opt/nvidia/deepstream/deepstream/samples && bash prepare_ds_triton_model_repo.sh 
 ```
 
-## 发起视频流
+## 例子1 - RTSP输入，RTSP输出, 实时多目标检测
+### 发起视频流
 
 这里模拟云端场景的RTSP视频流输入
 
@@ -27,7 +28,7 @@ ffmpeg -re -stream_loop -1 -i /opt/nvidia/deepstream/deepstream/samples/streams/
 rtsp://rtsp-server:8554/stream_1
 ```
 
-## 启动DeepStream APP
+### 启动DeepStream APP
 
 ```bash
 cd /opt/nvidia/deepstream/deepstream/samples/deepstream_python_apps/apps/deepstream-rtsp-in-rtsp-out && 
@@ -37,7 +38,7 @@ python3 deepstream_test1_rtsp_in_rtsp_out.py -i rtsp://rtsp-server:8554/stream_1
 DeepStream应用的输出也是一个RTSP视频流，在宿主机下的地址为 `rtsp://127.0.0.1:18554/ds-test`  
 使用FRP反代转发18554端口到公网服务器
 
-## 播放输出视频流
+### 播放输出视频流
 
 使用VLC播放器播放视频流
 

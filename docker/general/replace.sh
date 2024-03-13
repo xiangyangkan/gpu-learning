@@ -6,6 +6,20 @@ TARGET_ENV_FILE="$SCRIPT_DIR/.env"
 source "$SCRIPT_DIR/../utils.sh"
 source "$SCRIPT_DIR/default.env"
 
+USER=$1
+WORKSPACE=$2
+
+if [[ -z "$USER" ]]; then
+    echo "Please provide a username"
+    exit 1
+fi
+
+if [[ -z "$WORKSPACE" ]]; then
+    WORKSPACE="/data"
+    echo "No workspace provided, using default: $WORKSPACE"
+fi
+
+
 function change_user_env() {
     local compose_file="$1"
     local username="$2"

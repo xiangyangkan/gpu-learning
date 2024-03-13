@@ -3,7 +3,7 @@ COLOR_END="\033[0m"
 GITHUB_TOKEN="xxx" # 请替换为你的GitHub Token
 
 # 纯数字版本
-STRICT_FILTER='select((test("^v?[0-9]+(\\.[0-9]+)*$")))'
+STRICT_FILTER='select((test("^v?[0-9]+\\.[0-9]+(\\.[0-9]+)*$")))'
 # 数字版本号后面允许带其他字符
 MODERATE_FILTER='select((test("^v?[0-9]+(\\.[0-9]+)*(-[a-zA-Z0-9]+)*$"))
   and (test("latest"; "i") | not) and (test("windows"; "i") | not))'
@@ -167,9 +167,7 @@ function replace_env() {
     local env_name=$2
     local env_value=$3
     local env_source_value
-    if [[ -n "$env_value" ]]; then
-        env_source_value=$(grep -E "^$env_name=" "$SOURCE_ENV_FILE" | cut -d '=' -f2)
-        echo -e "Replacing $env_name value in .env from $env_source_value to $env_value"
-        sed -i -e "s|^$env_name=$env_source_value|$env_name=$env_value|" "$env_file"
-    fi
+    env_source_value=$(grep -E "^$env_name=" "$env_file" | cut -d '=' -f2)
+    echo -e "Replacing $env_name value in .env from $env_source_value to $env_value"
+    sed -i -e "s|^$env_name=.*|$env_name=$env_value|" "$env_file"
 }
