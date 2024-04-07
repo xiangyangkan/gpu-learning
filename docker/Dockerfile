@@ -23,15 +23,23 @@ COPY supervisord.conf /
 # SSH config
 ARG UBUNTU_MIRROR=http://launchpadlibrarian.net
 ARG UPDATE_CUDA_SOURCE=true
+ARG ARCH=x86_64
 RUN if [ "${UPDATE_CUDA_SOURCE}" = "true" ]; then \
         apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub; \
     fi
 RUN apt-get update --fix-missing && apt-get install --allow-unauthenticated -y \
     openssh-server pwgen supervisor proxychains redsocks libnfnetlink0 && \
-    iptables_installer="iptables_1.6.0-2ubuntu3_amd64.deb" && \
-    libxtables_installer="libxtables11_1.6.0-2ubuntu3_amd64.deb" && \
-    wget --quiet "${UBUNTU_MIRROR}/240591163/${iptables_installer}" && \
-    wget --quiet "${UBUNTU_MIRROR}/240591164/${libxtables_installer}" && \
+    if [ "${ARCH}" = "aarch64" ]; then \
+        iptables_installer="iptables_1.6.0-2ubuntu3_arm64.deb"; \
+        libxtables_installer="libxtables11_1.6.0-2ubuntu3_arm64.deb"; \
+        wget --quiet "${UBUNTU_MIRROR}/240591460/${iptables_installer}"; \
+        wget --quiet "${UBUNTU_MIRROR}/240591461/${libxtables_installer}"; \
+    else \
+        iptables_installer="iptables_1.6.0-2ubuntu3_amd64.deb"; \
+        libxtables_installer="libxtables11_1.6.0-2ubuntu3_amd64.deb"; \
+        wget --quiet "${UBUNTU_MIRROR}/240591163/${iptables_installer}"; \
+        wget --quiet "${UBUNTU_MIRROR}/240591164/${libxtables_installer}"; \
+    fi && \
     dpkg -i ${libxtables_installer} ${iptables_installer} && \
     rm ${libxtables_installer} ${iptables_installer} && \
     apt-get clean && \
