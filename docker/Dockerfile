@@ -17,7 +17,7 @@ RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && \
     echo ${TZ} > /etc/timezone
 
 # supervisor config
-RUN mkdir /var/run/sshd
+RUN mkdir -p /var/run/sshd
 COPY supervisord.conf /
 
 # SSH config
