@@ -80,14 +80,17 @@ function build_triton_backend_image() {
       base_image="nvcr.io/nvidia/tritonserver:$ngc_version-py3"
       tag="$ngc_version"
     fi
-    local stage_1_image="triton_backend:conda"
-    local stage_2_image="triton_backend:build"
-    docker build --target conda --build-arg BASE_IMAGE="$base_image" \
-      --build-arg PYTHON_VERSION="$python_version" --build-arg CONDA_VERSION="$conda_version" \
+    local stage_1_image="triton_backend:base"
+    local stage_2_image="triton_backend:conda"
+    local stage_3_image="triton_backend:build"
+    docker build --target base --build-arg BASE_IMAGE="$base_image" \
       -t $stage_1_image -f Dockerfile . || exit 1
-    docker build --target devel --build-arg BASE_IMAGE="$stage_1_image" --build-arg PYTHON_VERSION="$python_version" \
+    docker build --target conda --build-arg BASE_IMAGE="$stage_1_image" \
+      --build-arg PYTHON_VERSION="$python_version" --build-arg CONDA_VERSION="$conda_version" \
       -t $stage_2_image -f Dockerfile . || exit 1
-    docker build --target build --build-arg BASE_IMAGE="$stage_2_image" \
+    docker build --target devel --build-arg BASE_IMAGE="$stage_2_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t $stage_3_image -f Dockerfile . || exit 1
+    docker build --target build --build-arg BASE_IMAGE="$stage_3_image" \
       --build-arg CMAKE_VERSION="$cmake_version" --build-arg BAZELISK_VERSION="$bazelisk_version" \
       -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
     docker push rivia/triton_backend:"$tag" && docker system prune -a -f
