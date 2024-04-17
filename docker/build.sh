@@ -47,6 +47,7 @@ function build_trtllm_image() {
     local python_version="$2"
     local base_image="tensorrt_llm/release:latest"
     local stage_image="trtllm:devel"
+    rm -rf general/TensorRT-LLM
     git clone -b "v$trtllm_version" https://github.com/NVIDIA/TensorRT-LLM.git general/TensorRT-LLM
     cd general/TensorRT-LLM || exit 1
     git submodule update --init --recursive
