@@ -121,14 +121,14 @@ function build_nemo_image() {
 }
 
 
-NGC_VERSION="23.12"
+NGC_VERSION="24.03"
 PYTHON_VERSION="3.10"
-CONDA_VERSION="23.11.0-2"
+CONDA_VERSION="24.3.0-0"
 CMAKE_VERSION="3.28.1"
 BAZELISK_VERSION="1.18.0"
 DEEPSTREAM_VERSION="6.4-triton-multiarch"
 PYDS_VERSION="1.1.10"
-TRTLLM_VERSION="0.7.1"
+TRTLLM_VERSION="0.9.0"
 dos2unix ./*
 build_pytorch_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
 build_tensorflow_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
