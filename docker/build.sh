@@ -65,22 +65,12 @@ function build_trtllm_image() {
 function build_trtllm_backend_base_image() {
     local ngc_version="$1"
     local trtllm_version="$2"
-    local trt_version="$3"
-    local cuda_version="$4"
-    local base_image="nvcr.io/nvidia/tritonserver:$ngc_version-py3-min"
-    local target_image="nvcr.io/nvidia/tritonserver:$ngc_version-trtllm-python-py3"
-    local trt_url_x86=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/${trt_version%.*}/TensorRT-${trt_version}.Linux.x86_64-gnu.cuda-${cuda_version}.tar.gz
-    local trt_url_arm=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/${trt_version%.*}/TensorRT-${trt_version}.Ubuntu-22.04.aarch64-gnu.cuda-${cuda_version}.tar.gz
     rm -rf general/tensorrtllm_backend
     git clone -b "v$trtllm_version" https://github.com/triton-inference-server/tensorrtllm_backend.git general/tensorrtllm_backend
     cd general/tensorrtllm_backend || exit 1
-    docker build -t trtllm_base \
-             --build-arg BASE_IMAGE="${base_image}" \
-             --build-arg TRT_VER="${trt_version}" \
-             --build-arg RELEASE_URL_TRT_x86="${trt_url_x86}" \
-             --build-arg RELEASE_URL_TRT_ARM="${trt_url_arm}" \
-             -f dockerfile/Dockerfile.triton.trt_llm_backend \
-             -t "$target_image" . || exit 1
+    git submodule update --init --recursive
+    apt install -y git-lfs && git lfs pull || exit 1
+    docker build -t "nvcr.io/nvidia/tritonserver:$ngc_version-trtllm-python-py3" -f dockerfile/Dockerfile.trt_llm_backend .
 }
 
 function build_triton_backend_image() {
@@ -160,9 +150,7 @@ build_trtllm_image "$TRTLLM_VERSION" "$PYTHON_VERSION" || exit 1
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "general" || exit 1
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "vllm" || exit 1
 if [ "$CUSTOM_TRTLLM_BACKEND" = "true" ]; then
-  TRT_VERSION="9.3.0.1"
-  CUDA_VERSION="12.2"
-  build_trtllm_backend_base_image "$NGC_VERSION" "$TRTLLM_VERSION" "$TRT_VERSION" "$CUDA_VERSION" || exit 1
+  build_trtllm_backend_base_image "$NGC_VERSION" "$TRTLLM_VERSION" || exit 1
 fi
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
 build_deepstream_image "$DEEPSTREAM_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "x86_64" || exit 1
