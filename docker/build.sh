@@ -51,9 +51,8 @@ function build_trtllm_image() {
     git clone -b "v$trtllm_version" https://github.com/NVIDIA/TensorRT-LLM.git general/TensorRT-LLM
     cd general/TensorRT-LLM || exit 1
     git submodule update --init --recursive
-    git lfs install
-    git lfs pull
-    docker build --target release --build-arg BUILD_WHEEL_ARGS="--clean --python_bindings --trt_root /usr/local/tensorrt" \
+    apt install -y git-lfs && git lfs pull || exit 1
+    docker build --target release --build-arg BUILD_WHEEL_ARGS="--clean --trt_root /usr/local/tensorrt --python_bindings --benchmarks" \
       --file docker/Dockerfile.multi --tag $base_image . || exit 1
     cd "$WORKING_DIR" || exit 1
     docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
