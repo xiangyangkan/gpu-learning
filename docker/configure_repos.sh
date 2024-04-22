@@ -107,6 +107,7 @@ function configure_pip() {
                 echo -e "[global]
 trusted-host = $ARTIFACTORY_HOST
 index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$repo_key/simple
+extra-index-url = https://pypi.org/simple
 timeout = $timeout" > "$pip_conf_path"
                 echo -e "pip configuration file written to $pip_conf_path"
                 config_updated=1
@@ -119,6 +120,7 @@ timeout = $timeout" > "$pip_conf_path"
             echo -e "[global]
 trusted-host = $ARTIFACTORY_HOST
 index-url = $ARTIFACTORY_URL/artifactory/api/pypi/$repo_key/simple
+extra-index-url = https://pypi.org/simple
 timeout = $timeout" > "$pip_conf_default"
             echo -e "pip configuration file written to $pip_conf_default"
         fi
