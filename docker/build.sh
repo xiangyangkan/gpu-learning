@@ -100,7 +100,7 @@ function build_triton_backend_image() {
       --build-arg PYTHON_VERSION="$python_version" --build-arg CONDA_VERSION="$conda_version" \
       -t $stage_2_image -f Dockerfile . || exit 1
     docker build --target devel --build-arg BASE_IMAGE="$stage_2_image" --build-arg PYTHON_VERSION="$python_version" \
-      -t $stage_3_image -f Dockerfile . || exit 1
+      -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
     docker build --target build --build-arg BASE_IMAGE="$stage_3_image" \
       --build-arg CMAKE_VERSION="$cmake_version" --build-arg BAZELISK_VERSION="$bazelisk_version" \
       -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
@@ -150,6 +150,7 @@ build_trtllm_image "$TRTLLM_VERSION" "$PYTHON_VERSION" || exit 1
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "general" || exit 1
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "vllm" || exit 1
 if [ "$CUSTOM_TRTLLM_BACKEND" = "true" ]; then
+  # 自构建的会保留编译文件，不会删除, 会多大约 20G 空间
   build_trtllm_backend_base_image "$NGC_VERSION" "$TRTLLM_VERSION" || exit 1
 fi
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
