@@ -100,7 +100,7 @@ function build_triton_backend_image() {
       --build-arg PYTHON_VERSION="$python_version" --build-arg CONDA_VERSION="$conda_version" \
       -t $stage_2_image -f Dockerfile . || exit 1
     docker build --target devel --build-arg BASE_IMAGE="$stage_2_image" --build-arg PYTHON_VERSION="$python_version" \
-      -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
+      -t $stage_3_image -f Dockerfile . || exit 1
     docker build --target build --build-arg BASE_IMAGE="$stage_3_image" \
       --build-arg CMAKE_VERSION="$cmake_version" --build-arg BAZELISK_VERSION="$bazelisk_version" \
       -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
@@ -112,7 +112,11 @@ function build_deepstream_image() {
     local python_version="$2"
     local pyds_version="$3"
     local arch="$4"
-    local base_image="nvcr.io/nvidia/deepstream:$deepstream_version"
+    if [[ "$arch" == "x86_64" ]]; then
+      local base_image="nvcr.io/nvidia/deepstream:$deepstream_version"
+    else
+      local base_image="dustynv/deepstream:$deepstream_version"
+    fi
     local stage_image="deepstream:devel"
     docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
       -t $stage_image -f Dockerfile . || exit 1
@@ -137,7 +141,9 @@ PYTHON_VERSION="3.10"
 CONDA_VERSION="24.3.0-0"
 CMAKE_VERSION="3.28.4"
 BAZELISK_VERSION="1.19.0"
+USE_JETSON="false"
 DEEPSTREAM_VERSION="6.4-triton-multiarch"
+JETSON_VERSION="r36.2.0"
 PYDS_VERSION="1.1.10"
 TRTLLM_VERSION="0.9.0"
 CUSTOM_TRTLLM_BACKEND="false"
@@ -154,5 +160,9 @@ if [ "$CUSTOM_TRTLLM_BACKEND" = "true" ]; then
   build_trtllm_backend_base_image "$NGC_VERSION" "$TRTLLM_VERSION" || exit 1
 fi
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
-build_deepstream_image "$DEEPSTREAM_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "x86_64" || exit 1
+if [ "$USE_JETSON" = "true" ]; then
+  build_deepstream_image "$JETSON_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "jetson" || exit 1
+else
+  build_deepstream_image "$DEEPSTREAM_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "x86_64" || exit 1
+fi
 build_nemo_image 23.08 3.8 || exit 1
