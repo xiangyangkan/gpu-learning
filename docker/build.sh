@@ -65,21 +65,48 @@ function build_trtllm_image() {
 function build_trtllm_backend_base_image() {
     local ngc_version="$1"
     local trtllm_version="$2"
+    local tensorrt_version="$3"
     rm -rf general/tensorrtllm_backend
+    rm -rf general/server
     git clone -b "v$trtllm_version" https://github.com/triton-inference-server/tensorrtllm_backend.git general/tensorrtllm_backend
-    cd general/tensorrtllm_backend || exit 1
+    git clone -b "r$ngc_version" https://github.com/triton-inference-server/server.git general/server
+    cd "$WORKING_DIR/general/tensorrtllm_backend" || exit 1
     git submodule update --init --recursive
     apt install -y git-lfs && git lfs pull || exit 1
-    docker build -t "nvcr.io/nvidia/tritonserver:$ngc_version-trtllm-python-py3" -f dockerfile/Dockerfile.trt_llm_backend .
+#    docker build --build-arg BASE_TAG="$ngc_version-pyt-python-py3" \
+#      -t "nvcr.io/nvidia/tritonserver:$ngc_version-trtllm-python-py3" -f dockerfile/Dockerfile.trt_llm_backend .
+
+    BASE_IMAGE="nvcr.io/nvidia/pytorch:${ngc_version}-py3"
+    TRT_URL_x86="https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/${tensorrt_version%.*}/tensorrt-${tensorrt_version}.linux.x86_64-gnu.cuda-12.2.tar.gz"
+    TRT_URL_ARM="https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/${tensorrt_version%.*}/tensorrt-${tensorrt_version}.ubuntu-22.04.aarch64-gnu.cuda-12.2.tar.gz"
+    TRTLLM_BASE_IMAGE=trtllm_base
+    TENSORRTLLM_BACKEND_REPO_TAG=rel
+    docker build -t ${TRTLLM_BASE_IMAGE} \
+                 --build-arg BASE_IMAGE="${BASE_IMAGE}" \
+                 --build-arg TRT_VER="${tensorrt_version}" \
+                 --build-arg RELEASE_URL_TRT_x86="${TRT_URL_x86}" \
+                 --build-arg RELEASE_URL_TRT_ARM="${TRT_URL_ARM}" \
+                 -f dockerfile/Dockerfile.triton.trt_llm_backend . || exit 1
+
+    cd "$WORKING_DIR/general/server" || exit 1
+    python3 ./build.py -v --no-container-interactive --enable-logging --enable-stats --enable-tracing \
+              --enable-metrics --enable-gpu-metrics --enable-cpu-metrics \
+              --filesystem=gcs --filesystem=s3 --filesystem=azure_storage \
+              --endpoint=http --endpoint=grpc --endpoint=sagemaker --endpoint=vertex-ai \
+              --backend=ensemble --enable-gpu --endpoint=http --endpoint=grpc \
+              --no-container-pull \
+              --image=base,${TRTLLM_BASE_IMAGE} \
+              --backend=tensorrtllm:${TENSORRTLLM_BACKEND_REPO_TAG} \
+              --backend=python:"r${ngc_version}" || exit 1
+    docker tag tritonserver:latest "nvcr.io/nvidia/tritonserver:$ngc_version-trtllm-python-py3"
 }
 
 function build_triton_backend_image() {
     local ngc_version="$1"
     local python_version="$2"
-    local conda_version="$3"
-    local cmake_version="$4"
-    local bazelisk_version="$5"
-    local backend_type="$6"
+    local cmake_version="$3"
+    local bazelisk_version="$4"
+    local backend_type="$5"
     local base_image
     if [[ "$backend_type" == "trtllm" ]]; then
       base_image="nvcr.io/nvidia/tritonserver:$ngc_version-trtllm-python-py3"
@@ -91,18 +118,7 @@ function build_triton_backend_image() {
       base_image="nvcr.io/nvidia/tritonserver:$ngc_version-py3"
       tag="$ngc_version"
     fi
-    local stage_1_image="triton_backend:base"
-    local stage_2_image="triton_backend:conda"
-    local stage_3_image="triton_backend:build"
     docker build --target base --build-arg BASE_IMAGE="$base_image" \
-      -t $stage_1_image -f Dockerfile . || exit 1
-    docker build --target conda --build-arg BASE_IMAGE="$stage_1_image" \
-      --build-arg PYTHON_VERSION="$python_version" --build-arg CONDA_VERSION="$conda_version" \
-      -t $stage_2_image -f Dockerfile . || exit 1
-    docker build --target devel --build-arg BASE_IMAGE="$stage_2_image" --build-arg PYTHON_VERSION="$python_version" \
-      -t $stage_3_image -f Dockerfile . || exit 1
-    docker build --target build --build-arg BASE_IMAGE="$stage_3_image" \
-      --build-arg CMAKE_VERSION="$cmake_version" --build-arg BAZELISK_VERSION="$bazelisk_version" \
       -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
     docker push rivia/triton_backend:"$tag" && docker system prune -a -f
 }
@@ -138,7 +154,6 @@ function build_nemo_image() {
 
 NGC_VERSION="24.04"
 PYTHON_VERSION="3.10"
-CONDA_VERSION="24.3.0-0"
 CMAKE_VERSION="3.28.4"
 BAZELISK_VERSION="1.19.0"
 USE_JETSON="false"
@@ -146,20 +161,21 @@ DEEPSTREAM_VERSION="6.4-triton-multiarch"
 JETSON_VERSION="r36.2.0"
 PYDS_VERSION="1.1.10"
 TRTLLM_VERSION="0.9.0"
-CUSTOM_TRTLLM_BACKEND="false"
+TENSORRT_VERSION="9.2.0.5"
+CUSTOM_TRTLLM_BACKEND="true"
 dos2unix ./*
 build_pytorch_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
 build_tensorflow_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
 build_triton_server_image "$NGC_VERSION" || exit 1
 build_tensorrt_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" || exit 1
 build_trtllm_image "$TRTLLM_VERSION" "$PYTHON_VERSION" || exit 1
-build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "general" || exit 1
-build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "vllm" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "general" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "vllm" || exit 1
 if [ "$CUSTOM_TRTLLM_BACKEND" = "true" ]; then
   # 自构建的会保留编译文件，不会删除, 会多大约 20G 空间
-  build_trtllm_backend_base_image "$NGC_VERSION" "$TRTLLM_VERSION" || exit 1
+  build_trtllm_backend_base_image "$NGC_VERSION" "$TRTLLM_VERSION" "$TENSORRT_VERSION" || exit 1
 fi
-build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CONDA_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
 if [ "$USE_JETSON" = "true" ]; then
   build_deepstream_image "$JETSON_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "jetson" || exit 1
 else
