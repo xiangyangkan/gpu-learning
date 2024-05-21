@@ -104,6 +104,10 @@ function build_trtllm_backend_base_image() {
 function build_triton_backend_image() {
     local ngc_version="$1"
     local python_version="$2"
+    local conda_version="$3"
+    local cmake_version="$4"
+    local bazelisk_version="$5"
+    local backend_type="$6"
     local cmake_version="$3"
     local bazelisk_version="$4"
     local backend_type="$5"
@@ -118,7 +122,10 @@ function build_triton_backend_image() {
       base_image="nvcr.io/nvidia/tritonserver:$ngc_version-py3"
       tag="$ngc_version"
     fi
+    local stage_image="triton_backend:base"
     docker build --target base --build-arg BASE_IMAGE="$base_image" \
+      -t $stage_image -f Dockerfile . || exit 1
+    docker build --target devel --build-arg BASE_IMAGE="$stage_image" --build-arg PYTHON_VERSION="$python_version" \
       -t rivia/triton_backend:"$tag" -f Dockerfile . || exit 1
     docker push rivia/triton_backend:"$tag" && docker system prune -a -f
 }
