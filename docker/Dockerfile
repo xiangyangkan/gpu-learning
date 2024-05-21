@@ -174,7 +174,7 @@ RUN apt-get update --fix-missing && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --user --upgrade pip && \
+RUN python3 -m pip install --upgrade pip && \
     ln -snf /usr/local/bin/pip /usr/bin/pip${PYTHON_VERSION} && \
     pip install --no-cache-dir -r /python_requirements.txt
 
