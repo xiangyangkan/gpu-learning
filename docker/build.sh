@@ -158,6 +158,15 @@ function build_nemo_image() {
     docker push rivia/nemo:"$ngc_version" && docker system prune -a -f
 }
 
+function build_lmdeploy_image() {
+    local lmdeploy_version="$1"
+    local python_version="$2"
+    local base_image="openmmlab/lmdeploy:v$lmdeploy_version"
+    docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t "rivia/pytorch:lmdeploy-$lmdeploy_version" -f Dockerfile . || exit 1
+    docker push "rivia/pytorch:lmdeploy-$lmdeploy_version" && docker system prune -a -f
+}
+
 
 NGC_VERSION="24.04"
 PYTHON_VERSION="3.10"
@@ -169,6 +178,7 @@ JETSON_VERSION="r36.2.0"
 PYDS_VERSION="1.1.10"
 TRTLLM_VERSION="0.9.0"
 TENSORRT_VERSION="9.2.0.5"
+LMDEPLOY_VERSION="0.4.2"
 CUSTOM_TRTLLM_BACKEND="true"
 dos2unix ./*
 build_pytorch_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
@@ -189,3 +199,4 @@ else
   build_deepstream_image "$DEEPSTREAM_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "x86_64" || exit 1
 fi
 build_nemo_image 23.08 3.8 || exit 1
+build_lmdeploy_image "$LMDEPLOY_VERSION" "3.8" || exit 1
