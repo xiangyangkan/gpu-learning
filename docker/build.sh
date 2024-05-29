@@ -119,10 +119,6 @@ function build_trtllm_backend_from_scratch() {
 function build_triton_backend_image() {
     local ngc_version="$1"
     local python_version="$2"
-    local conda_version="$3"
-    local cmake_version="$4"
-    local bazelisk_version="$5"
-    local backend_type="$6"
     local cmake_version="$3"
     local bazelisk_version="$4"
     local backend_type="$5"
@@ -185,8 +181,8 @@ function build_lmdeploy_image() {
 
 NGC_VERSION="24.05"
 PYTHON_VERSION="3.10"
-CMAKE_VERSION="3.28.4"
-BAZELISK_VERSION="1.19.0"
+CMAKE_VERSION="3.28.4" # currently deprecated
+BAZELISK_VERSION="1.19.0" # currently deprecated
 USE_JETSON="false"
 DEEPSTREAM_VERSION="6.4-triton-multiarch"
 JETSON_VERSION="r36.2.0"
