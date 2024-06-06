@@ -75,8 +75,8 @@ function build_trtllm_backend_from_scratch() {
     local tensorrt_version="$3"
     rm -rf general/tensorrtllm_backend
     rm -rf general/server
-    # 使用`triton-inference-server/tensorrtllm_backend`的主分支最新代码
-    git clone https://github.com/triton-inference-server/tensorrtllm_backend.git general/tensorrtllm_backend
+    # 使用`triton-inference-server/tensorrtllm_backend`的指定版本代码
+    git clone -b "v$trtllm_version" https://github.com/triton-inference-server/tensorrtllm_backend.git general/tensorrtllm_backend
     # 使用`triton-inference-server/server`的主分支最新代码
     git clone https://github.com/triton-inference-server/server.git general/server
     cd "$WORKING_DIR/general/tensorrtllm_backend" || exit 1
@@ -87,8 +87,8 @@ function build_trtllm_backend_from_scratch() {
     TRT_URL_x86="https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/${tensorrt_version%.*}/tars/TensorRT-${tensorrt_version}.Linux.x86_64-gnu.cuda-12.4.tar.gz"
     TRT_URL_ARM="https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/${tensorrt_version%.*}/tars/TensorRT-${tensorrt_version}.ubuntu-22.04.aarch64-gnu.cuda-12.4.tar.gz"
     TRTLLM_BASE_IMAGE=trtllm_base
-    # 使用`TensorRT-LLM`的主分支最新代码编译
-    TENSORRTLLM_BACKEND_REPO_TAG=main
+    # 使用`TensorRT-LLM`的指定版本代码编译
+    TENSORRTLLM_BACKEND_REPO_TAG="v$trtllm_version"
     docker build -t ${TRTLLM_BASE_IMAGE} \
                  --build-arg BASE_IMAGE="${BASE_IMAGE}" \
                  --build-arg TRT_VER="${tensorrt_version}" \
@@ -174,8 +174,8 @@ function build_lmdeploy_image() {
     local python_version="$2"
     local base_image="openmmlab/lmdeploy:v$lmdeploy_version"
     docker build --target devel --build-arg BASE_IMAGE="$base_image" --build-arg PYTHON_VERSION="$python_version" \
-      -t "rivia/pytorch:lmdeploy-$lmdeploy_version" -f Dockerfile . || exit 1
-    docker push "rivia/pytorch:lmdeploy-$lmdeploy_version" && docker_prune
+      -t "rivia/lmdeploy:v$lmdeploy_version" -f Dockerfile . || exit 1
+    docker push "rivia/lmdeploy:v$lmdeploy_version" && docker_prune
 }
 
 
@@ -187,7 +187,7 @@ USE_JETSON="false"
 DEEPSTREAM_VERSION="6.4-triton-multiarch"
 JETSON_VERSION="r36.2.0"
 PYDS_VERSION="1.1.10"
-TRTLLM_VERSION="0.9.0"
+TRTLLM_VERSION="0.10.0"
 TENSORRT_VERSION="10.0.1.6"
 LMDEPLOY_VERSION="0.4.2"
 CUSTOM_TRTLLM_BACKEND="true"
@@ -202,7 +202,7 @@ build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$B
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "vllm" || exit 1
 if [ "$CUSTOM_TRTLLM_BACKEND" = "true" ]; then
   # 自构建的会保留编译文件，不会删除, 会多大约 20G 空间
-  build_trtllm_backend_base_image "$NGC_VERSION" "$TRTLLM_VERSION" "$TENSORRT_VERSION" || exit 1
+  build_trtllm_backend_from_scratch "$NGC_VERSION" "$TRTLLM_VERSION" "$TENSORRT_VERSION" || exit 1
 fi
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
 if [ "$USE_JETSON" = "true" ]; then
