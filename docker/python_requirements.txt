@@ -22,3 +22,4 @@ numba
 protobuf
 xlrd
 requests
+poetry

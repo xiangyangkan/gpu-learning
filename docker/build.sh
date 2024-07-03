@@ -1,6 +1,6 @@
 #!/bin/bash
 WORKING_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ENABLE_PRUNE="true"
+ENABLE_PRUNE="false"
 
 function docker_prune() {
     if [ "$ENABLE_PRUNE" = "true" ]; then
@@ -73,12 +73,13 @@ function build_trtllm_backend_from_scratch() {
     local ngc_version="$1"
     local trtllm_version="$2"
     local tensorrt_version="$3"
+    local tritonserver_version="$4"
     rm -rf general/tensorrtllm_backend
     rm -rf general/server
     # 使用`triton-inference-server/tensorrtllm_backend`的指定版本代码
-    git clone -b "v$trtllm_version" https://github.com/triton-inference-server/tensorrtllm_backend.git general/tensorrtllm_backend
+    git clone -b "$trtllm_version" https://github.com/triton-inference-server/tensorrtllm_backend.git general/tensorrtllm_backend
     # 使用`triton-inference-server/server`的主分支最新代码
-    git clone https://github.com/triton-inference-server/server.git general/server
+    git clone -b "$tritonserver_version" https://github.com/triton-inference-server/server.git general/server
     cd "$WORKING_DIR/general/tensorrtllm_backend" || exit 1
     git submodule update --init --recursive
     apt install -y git-lfs && git lfs pull || exit 1
@@ -88,7 +89,7 @@ function build_trtllm_backend_from_scratch() {
     TRT_URL_ARM="https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/${tensorrt_version%.*}/tars/TensorRT-${tensorrt_version}.ubuntu-22.04.aarch64-gnu.cuda-12.4.tar.gz"
     TRTLLM_BASE_IMAGE=trtllm_base
     # 使用`TensorRT-LLM`的指定版本代码编译
-    TENSORRTLLM_BACKEND_REPO_TAG="v$trtllm_version"
+    TENSORRTLLM_BACKEND_REPO_TAG="$trtllm_version"
     docker build -t ${TRTLLM_BASE_IMAGE} \
                  --build-arg BASE_IMAGE="${BASE_IMAGE}" \
                  --build-arg TRT_VER="${tensorrt_version}" \
@@ -103,8 +104,8 @@ function build_trtllm_backend_from_scratch() {
               --endpoint=http --endpoint=grpc --endpoint=sagemaker --endpoint=vertex-ai \
               --backend=ensemble --enable-gpu --endpoint=http --endpoint=grpc \
               --no-container-pull \
-              --image=base,${TRTLLM_BASE_IMAGE} \
-              --backend=tensorrtllm:${TENSORRTLLM_BACKEND_REPO_TAG} \
+              --image="base,${TRTLLM_BASE_IMAGE}" \
+              --backend=tensorrtllm:"${TENSORRTLLM_BACKEND_REPO_TAG}" \
               --backend=python:"r${ngc_version}" || exit 1
 
     local stage_image="triton_backend:base"
@@ -179,17 +180,15 @@ function build_lmdeploy_image() {
 }
 
 
-NGC_VERSION="24.05"
+NGC_VERSION="24.06"
 PYTHON_VERSION="3.10"
-CMAKE_VERSION="3.28.4" # currently deprecated
-BAZELISK_VERSION="1.19.0" # currently deprecated
+CMAKE_VERSION="3.28.4"
+BAZELISK_VERSION="1.20.0"
 USE_JETSON="false"
 DEEPSTREAM_VERSION="6.4-triton-multiarch"
 JETSON_VERSION="r36.2.0"
 PYDS_VERSION="1.1.10"
-TRTLLM_VERSION="0.10.0"
-TENSORRT_VERSION="10.0.1.6"
-LMDEPLOY_VERSION="0.4.2"
+LMDEPLOY_VERSION="0.5.0"
 CUSTOM_TRTLLM_BACKEND="true"
 dos2unix ./*
 
@@ -198,11 +197,14 @@ build_tensorflow_image "$NGC_VERSION" "$PYTHON_VERSION" || exit 1
 build_triton_server_image "$NGC_VERSION" || exit 1
 build_tensorrt_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" || exit 1
 build_trtllm_image "$TRTLLM_VERSION" "$PYTHON_VERSION" || exit 1
-build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "general" || exit 1
-build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "vllm" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "general" || exit 1
+build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "vllm" || exit 1
 if [ "$CUSTOM_TRTLLM_BACKEND" = "true" ]; then
   # 自构建的会保留编译文件，不会删除, 会多大约 20G 空间
-  build_trtllm_backend_from_scratch "$NGC_VERSION" "$TRTLLM_VERSION" "$TENSORRT_VERSION" || exit 1
+  TRTLLM_VERSION="rel"
+  TENSORRT_VERSION="10.0.1.6"
+  TRITONSERVER_VERSION="v2.47.0"
+  build_trtllm_backend_from_scratch "$NGC_VERSION" "$TRTLLM_VERSION" "$TENSORRT_VERSION" "$TRITONSERVER_VERSION" || exit 1
 fi
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
 if [ "$USE_JETSON" = "true" ]; then
