@@ -142,6 +142,25 @@ function build_triton_backend_image() {
     docker push rivia/triton_backend:"$tag" && docker_prune
 }
 
+function build_ollama_image() {
+    local ollama_version="$1"
+    local python_version="$2"
+    local arch="$4"
+    if [[ "$arch" == "x86_64" ]]; then
+      local base_image="ollama/ollama:$ollama_version"
+      local platform="linux/amd64"
+    else
+      local base_image="dustynv/ollama:$ollama_version"
+      local platform="linux/arm64"
+    fi
+    local stage_image="ollama:base"
+    docker buildx build --platform $platform --target base --build-arg BASE_IMAGE="$base_image" \
+      -t $stage_image -f Dockerfile --load . || exit 1
+    docker buildx build --platform $platform --target conda --build-arg BASE_IMAGE="$stage_image" --build-arg PYTHON_VERSION="$python_version" \
+      -t rivia/ollama:"$jetson_version" -f Dockerfile --load . || exit 1
+    docker push rivia/ollama:"$jetson_version" && docker_prune
+}
+
 function build_deepstream_image() {
     local deepstream_version="$1"
     local python_version="$2"
@@ -180,13 +199,13 @@ function build_lmdeploy_image() {
 }
 
 
-NGC_VERSION="24.06"
+NGC_VERSION="24.09"
 PYTHON_VERSION="3.10"
 CMAKE_VERSION="3.28.4"
 BAZELISK_VERSION="1.20.0"
 USE_JETSON="false"
 DEEPSTREAM_VERSION="6.4-triton-multiarch"
-JETSON_VERSION="r36.2.0"
+JETSON_VERSION="r36.4.0"
 PYDS_VERSION="1.1.10"
 LMDEPLOY_VERSION="0.5.0"
 CUSTOM_TRTLLM_BACKEND="true"
@@ -208,6 +227,7 @@ if [ "$CUSTOM_TRTLLM_BACKEND" = "true" ]; then
 fi
 build_triton_backend_image "$NGC_VERSION" "$PYTHON_VERSION" "$CMAKE_VERSION" "$BAZELISK_VERSION" "trtllm" || exit 1
 if [ "$USE_JETSON" = "true" ]; then
+  build_ollama_image "$JETSON_VERSION" "$PYTHON_VERSION" || exit 1
   build_deepstream_image "$JETSON_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "jetson" || exit 1
 else
   build_deepstream_image "$DEEPSTREAM_VERSION" "$PYTHON_VERSION" "$PYDS_VERSION" "x86_64" || exit 1
