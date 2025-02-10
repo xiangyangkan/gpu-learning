@@ -106,7 +106,7 @@ ARG BAZELISK_VERSION=1.18.0
 ENV GOPATH=/usr/local/go
 ENV PATH=$PATH:$GOPATH/bin
 RUN apt-get update --fix-missing && \
-    apt-get install --no-install-recommends --allow-unauthenticated -y software-properties-common && \
+    apt-get install --no-install-recommends --allow-unauthenticated -y software-properties-common gnupg && \
     add-apt-repository -y ppa:longsleep/golang-backports && \
     apt-get update --fix-missing && \
     apt-get install --no-install-recommends --allow-unauthenticated -y \
